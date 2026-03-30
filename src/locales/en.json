@@ -1,0 +1,40 @@
+{
+  "common": {
+    "dashboard": "Dashboard",
+    "transactions": "Transactions",
+    "categories": "Categories",
+    "budget": "Budget",
+    "balance": "Balance",
+    "income": "Income",
+    "expense": "Expense",
+    "expenses": "Expenses",
+    "type": "Type",
+    "all": "All",
+    "category": "Category",
+    "date": "Date",
+    "description": "Description",
+    "amount": "Amount",
+    "save": "Save",
+    "add": "Add",
+    "name": "Name",
+    "emoji": "Emoji",
+    "color": "Color",
+    "addCategory": "Add Category",
+    "categoryName": "Category Name",
+    "manageCategoriesDesc": "Manage your income and expense categories",
+    "from": "From:",
+    "to": "To:",
+    "clear": "Clear",
+    "noTransactions": "No transactions found",
+    "noTransactionsDesc": "Add your first transaction to start tracking your budget",
+    "allTransactions": "All Transactions",
+    "manageTransactions": "Manage your income and expenses",
+    "addTransaction": "Add Transaction",
+    "descriptionPlaceholder": "e.g. Groceries"
+  },
+  "dashboard": {
+    "title": "Dashboard",
+    "subtitle": "Budget Overview",
+    "recentTransactions": "Recent Transactions"
+  }
+}

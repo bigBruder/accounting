@@ -1,0 +1,40 @@
+{
+  "common": {
+    "dashboard": "Дашборд",
+    "transactions": "Транзакції",
+    "categories": "Категорії",
+    "budget": "Бюджет",
+    "balance": "Баланс",
+    "income": "Доходи",
+    "expense": "Витрата",
+    "expenses": "Витрати",
+    "type": "Тип",
+    "all": "Усі",
+    "category": "Категорія",
+    "date": "Дата",
+    "description": "Опис",
+    "amount": "Сума",
+    "save": "Зберегти",
+    "add": "Додати",
+    "name": "Назва",
+    "emoji": "Emoji",
+    "color": "Колір",
+    "addCategory": "Додати категорію",
+    "categoryName": "Назва категорії",
+    "manageCategoriesDesc": "Керуйте категоріями доходів та витрат",
+    "from": "Від:",
+    "to": "До:",
+    "clear": "Очистити",
+    "noTransactions": "Транзакцій не знайдено",
+    "noTransactionsDesc": "Додайте першу транзакцію, щоб почати відстежувати бюджет",
+    "allTransactions": "Усі транзакції",
+    "manageTransactions": "Керуйте вашими доходами та витратами",
+    "addTransaction": "Додати транзакцію",
+    "descriptionPlaceholder": "Наприклад: Продукти"
+  },
+  "dashboard": {
+    "title": "Дашборд",
+    "subtitle": "Огляд вашого бюджету",
+    "recentTransactions": "Останні транзакції"
+  }
+}
