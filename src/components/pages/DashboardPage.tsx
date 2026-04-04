@@ -3,17 +3,28 @@ import { useTranslation } from 'react-i18next';
 import { DashboardStats } from '../organisms/DashboardStats';
 import { TransactionList } from '../organisms/TransactionList';
 import { CategoryBreakdown } from '../organisms/CategoryBreakdown';
+import { ExpenseDonut } from '../organisms/ExpenseDonut';
+import { SpendingTrend } from '../organisms/SpendingTrend';
 import { DateRangePicker } from '../molecules/DateRangePicker';
 import { MonoConnectModal } from '../organisms/MonoConnectModal';
 import { getRecentTransactions } from '../../services/budget.service';
 import { deleteTransaction } from '../../services/firestore.service';
 import { useData } from '../../contexts/DataContext';
 import { useAuth } from '../../contexts/AuthContext';
+import { startOfWeek, endOfWeek, format } from 'date-fns';
 import type { FilterOptions } from '../../models/types';
 
 export const DashboardPage: React.FC = () => {
   const { t } = useTranslation();
-  const [filters, setFilters] = useState<FilterOptions>({});
+  
+  // Set default filters to current week (Monday to Sunday)
+  const defaultFrom = format(startOfWeek(new Date(), { weekStartsOn: 1 }), 'yyyy-MM-dd');
+  const defaultTo = format(endOfWeek(new Date(), { weekStartsOn: 1 }), 'yyyy-MM-dd');
+
+  const [filters, setFilters] = useState<FilterOptions>({
+    dateFrom: defaultFrom,
+    dateTo: defaultTo
+  });
   const { transactions, loading, syncMonobank } = useData();
   const { familyId, monobankToken } = useAuth();
   const [syncLoading, setSyncLoading] = useState(false);
@@ -103,7 +114,22 @@ export const DashboardPage: React.FC = () => {
       </div>
       
       <DashboardStats filters={filters} />
-      
+
+      {/* Charts Row */}
+      <div className="grid-2" style={{ marginTop: 'var(--space-6)' }}>
+        <div id="spending-trend">
+          <SpendingTrend filters={filters} />
+        </div>
+        <div id="expense-donut">
+          <ExpenseDonut 
+            filters={filters} 
+            activeCategoryId={filters.categoryId}
+            onCategoryClick={handleCategoryClick}
+          />
+        </div>
+      </div>
+
+      {/* Transactions + Category Breakdown */}
       <div className="grid-2" style={{ marginTop: 'var(--space-6)' }}>
         <div id="recent-transactions">
           <TransactionList 

@@ -76,3 +76,72 @@ export function getCategoryBreakdown(transactions: Transaction[], categories: Ca
     }))
     .sort((a, b) => b.total - a.total);
 }
+
+export interface DailyData {
+  date: string;
+  label: string;
+  expense: number;
+  income: number;
+}
+
+export function getDailySpending(transactions: Transaction[], filters: FilterOptions = {}): DailyData[] {
+  const filtered = getFilteredTransactions(transactions, filters)
+    .filter(t => t.type === 'expense' || t.type === 'income');
+
+  const map = new Map<string, { expense: number; income: number }>();
+
+  for (const t of filtered) {
+    const existing = map.get(t.date) || { expense: 0, income: 0 };
+    if (t.type === 'expense') {
+      existing.expense += t.amount;
+    } else {
+      existing.income += t.amount;
+    }
+    map.set(t.date, existing);
+  }
+
+  return Array.from(map.entries())
+    .map(([date, data]) => ({
+      date,
+      label: new Date(date).toLocaleDateString('uk-UA', { day: 'numeric', month: 'short' }),
+      expense: Math.round(data.expense * 100) / 100,
+      income: Math.round(data.income * 100) / 100,
+    }))
+    .sort((a, b) => a.date.localeCompare(b.date));
+}
+
+export interface MonthlyData {
+  month: string;
+  label: string;
+  expense: number;
+  income: number;
+}
+
+export function getMonthlyComparison(transactions: Transaction[]): MonthlyData[] {
+  const map = new Map<string, { expense: number; income: number }>();
+
+  for (const t of transactions) {
+    if (t.type === 'transfer') continue;
+    const monthKey = t.date.substring(0, 7); // YYYY-MM
+    const existing = map.get(monthKey) || { expense: 0, income: 0 };
+    if (t.type === 'expense') {
+      existing.expense += t.amount;
+    } else if (t.type === 'income') {
+      existing.income += t.amount;
+    }
+    map.set(monthKey, existing);
+  }
+
+  return Array.from(map.entries())
+    .map(([month, data]) => {
+      const [y, m] = month.split('-');
+      const date = new Date(parseInt(y), parseInt(m) - 1);
+      return {
+        month,
+        label: date.toLocaleDateString('uk-UA', { month: 'short', year: '2-digit' }),
+        expense: Math.round(data.expense),
+        income: Math.round(data.income),
+      };
+    })
+    .sort((a, b) => a.month.localeCompare(b.month));
+}

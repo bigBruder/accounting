@@ -1,7 +1,7 @@
 import React from 'react';
 import DatePicker, { registerLocale } from 'react-datepicker';
 import { uk } from 'date-fns/locale/uk';
-import { format, parseISO, isValid } from 'date-fns';
+import { format, parseISO, isValid, addMonths, subMonths, startOfMonth, endOfMonth } from 'date-fns';
 import "react-datepicker/dist/react-datepicker.css";
 
 registerLocale('uk', uk);
@@ -28,31 +28,83 @@ export const DateRangePicker: React.FC<DateRangePickerProps> = ({ dateFrom = '',
     onChange('', '');
   };
 
+  const shiftMonth = (delta: number) => {
+    const baseDate = startDate || new Date();
+    const newBase = delta > 0 ? addMonths(baseDate, 1) : subMonths(baseDate, 1);
+    const from = format(startOfMonth(newBase), 'yyyy-MM-dd');
+    const to = format(endOfMonth(newBase), 'yyyy-MM-dd');
+    onChange(from, to);
+  };
+
   return (
-    <div className="range-picker-container">
-      <DatePicker
-        selectsRange
-        startDate={startDate}
-        endDate={endDate}
-        onChange={handleDateChange}
-        isClearable={false}
-        placeholderText="Оберіть період..."
-        className="premium-datepicker-input"
-        calendarClassName="premium-calendar"
-        dateFormat="dd.MM.yyyy"
-        locale="uk"
-        autoComplete="off"
-      />
-      {(dateFrom || dateTo) && (
-        <button className="clear-trigger" onClick={handleClear} title="Очистити">
-          ✕
+    <div className="range-picker-row">
+      <div className="month-arrows">
+        <button className="month-arrow-btn" onClick={() => shiftMonth(-1)} title="Попередній місяць">
+          ‹
         </button>
-      )}
+      </div>
+
+      <div className="range-picker-container">
+        <DatePicker
+          selectsRange
+          startDate={startDate}
+          endDate={endDate}
+          onChange={handleDateChange}
+          isClearable={false}
+          placeholderText="Оберіть період..."
+          className="premium-datepicker-input"
+          calendarClassName="premium-calendar"
+          dateFormat="dd.MM.yyyy"
+          locale="uk"
+          autoComplete="off"
+        />
+        {(dateFrom || dateTo) && (
+          <button className="clear-trigger" onClick={handleClear} title="Очистити">
+            ✕
+          </button>
+        )}
+      </div>
+
+      <div className="month-arrows">
+        <button className="month-arrow-btn" onClick={() => shiftMonth(1)} title="Наступний місяць">
+          ›
+        </button>
+      </div>
 
       <style>{`
+        .range-picker-row {
+          display: flex;
+          align-items: center;
+          gap: 8px;
+        }
+        .month-arrows {
+          display: flex;
+          align-items: center;
+        }
+        .month-arrow-btn {
+          background: #1a1e26;
+          color: #94a3b8;
+          border: 1px solid #334155;
+          width: 36px;
+          height: 36px;
+          border-radius: 10px;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          font-size: 1.5rem;
+          cursor: pointer;
+          transition: all 0.2s;
+          line-height: 1;
+        }
+        .month-arrow-btn:hover {
+          background: #334155;
+          color: white;
+          border-color: #6366f1;
+        }
+
         .range-picker-container {
           position: relative;
-          min-width: 240px;
+          min-width: 220px;
           display: inline-flex;
           align-items: center;
         }
@@ -61,13 +113,14 @@ export const DateRangePicker: React.FC<DateRangePickerProps> = ({ dateFrom = '',
           background: #1a1e26;
           color: #f8fafc;
           border: 1px solid #334155;
-          padding: 10px 40px 10px 16px;
-          border-radius: 12px;
-          font-size: 0.95rem;
+          padding: 8px 40px 8px 16px;
+          border-radius: 10px;
+          font-size: 0.9rem;
           font-weight: 500;
           cursor: pointer;
           transition: all 0.2s;
           box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+          text-align: center;
         }
         .premium-datepicker-input:hover {
           border-color: #6366f1;
@@ -80,8 +133,8 @@ export const DateRangePicker: React.FC<DateRangePickerProps> = ({ dateFrom = '',
         }
         .clear-trigger {
           position: absolute;
-          right: 12px;
-          background: #334155;
+          right: 10px;
+          background: rgba(148, 163, 184, 0.2);
           color: #94a3b8;
           border: none;
           width: 20px;
@@ -90,7 +143,7 @@ export const DateRangePicker: React.FC<DateRangePickerProps> = ({ dateFrom = '',
           display: flex;
           align-items: center;
           justify-content: center;
-          font-size: 0.75rem;
+          font-size: 0.7rem;
           cursor: pointer;
           transition: all 0.15s;
           z-index: 10;
@@ -100,33 +153,34 @@ export const DateRangePicker: React.FC<DateRangePickerProps> = ({ dateFrom = '',
           color: white;
         }
 
-        /* Calendar Styling */
+        /* Calendar Styling (Dark Mode) */
         .premium-calendar {
-          background-color: #1a1e26 !important;
+          background-color: #0f172a !important;
           border: 1px solid #334155 !important;
-          border-radius: 16px !important;
+          border-radius: 12px !important;
           font-family: inherit !important;
-          padding: 15px !important;
-          box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.5) !important;
-          margin-top: 10px !important;
+          padding: 8px !important;
+          box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.5) !important;
+          margin-top: 8px !important;
         }
         .react-datepicker__header {
           background-color: transparent !important;
           border-bottom: 1px solid #334155 !important;
-          padding-top: 10px !important;
+          padding-top: 8px !important;
         }
         .react-datepicker__current-month,
-        .react-datepicker-time__header,
-        .react-datepicker-year-header,
         .react-datepicker__day-name {
           color: #94a3b8 !important;
           font-weight: 600 !important;
+          font-size: 0.85rem !important;
         }
         .react-datepicker__day {
           color: #f1f5f9 !important;
-          border-radius: 8px !important;
-          margin: 4px !important;
-          transition: all 0.2s !important;
+          border-radius: 6px !important;
+          margin: 2px !important;
+          width: 32px !important;
+          line-height: 32px !important;
+          transition: all 0.15s !important;
         }
         .react-datepicker__day:hover {
           background-color: #334155 !important;
@@ -140,20 +194,17 @@ export const DateRangePicker: React.FC<DateRangePickerProps> = ({ dateFrom = '',
         .react-datepicker__day--range-end {
           background-color: #6366f1 !important;
           color: white !important;
-          border-radius: 8px !important;
-          box-shadow: 0 4px 12px rgba(99, 102, 241, 0.4) !important;
+          border-radius: 6px !important;
+          box-shadow: 0 2px 8px rgba(99, 102, 241, 0.4) !important;
         }
         .react-datepicker__day--outside-month {
           color: #475569 !important;
         }
         .react-datepicker__navigation {
-          top: 18px !important;
+          top: 14px !important;
         }
         .react-datepicker__navigation-icon::before {
           border-color: #94a3b8 !important;
-        }
-        .react-datepicker__triangle {
-          display: none !important;
         }
       `}</style>
     </div>
