@@ -155,6 +155,8 @@ export const FamilySettings: React.FC<FamilySettingsProps> = ({ onClose }) => {
           border-radius: 16px;
           width: 100%;
           max-width: 480px;
+          max-height: calc(100vh - 40px);
+          overflow-y: auto;
           box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
         }
         .family-settings-header {
