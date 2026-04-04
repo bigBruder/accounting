@@ -6,7 +6,7 @@ export const LoginPage: React.FC = () => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
-  const { login, register } = useAuth();
+  const { login, register, logout, user } = useAuth();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -23,44 +23,208 @@ export const LoginPage: React.FC = () => {
   };
 
   return (
-    <div style={{ maxWidth: '400px', margin: '100px auto', padding: 'var(--space-6)', backgroundColor: 'var(--surface-color)', borderRadius: 'var(--radius-lg)', boxShadow: 'var(--shadow-md)' }}>
-      <h1 className="page-title" style={{ textAlign: 'center', marginBottom: 'var(--space-6)' }}>
-        {isLogin ? 'Вхід' : 'Реєстрація'} {/* using hardcoded logic as there are no such localization keys */}
-      </h1>
-      <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-4)' }}>
-        <div className="form-group">
-          <label className="form-label">Email</label>
-          <input 
-            type="email" 
-            className="form-input" 
-            value={email} 
-            onChange={(e) => setEmail(e.target.value)} 
-            required 
-          />
+    <div className="login-page">
+      <div className="login-container animate-fade-in">
+        <div className="login-card">
+          <div className="login-header">
+            <div className="login-logo">💰</div>
+            <h1 className="login-title">
+              {isLogin ? 'З поверненням' : 'Створити акаунт'}
+            </h1>
+            <p className="login-subtitle">
+              {isLogin ? 'Увійдіть, щоб керувати сімейним бюджетом' : 'Приєднуйтесь до розумного планування витрат'}
+            </p>
+          </div>
+
+          <form onSubmit={handleSubmit} className="login-form">
+            <div className="form-group">
+              <label className="form-label">Електронна пошта</label>
+              <input 
+                type="email" 
+                className="form-input" 
+                placeholder="name@example.com"
+                value={email} 
+                onChange={(e) => setEmail(e.target.value)} 
+                required 
+              />
+            </div>
+            <div className="form-group">
+              <label className="form-label">Пароль</label>
+              <input 
+                type="password" 
+                className="form-input" 
+                placeholder="••••••••"
+                value={password} 
+                onChange={(e) => setPassword(e.target.value)} 
+                required 
+              />
+            </div>
+            
+            {error && <div className="error-message">{error}</div>}
+            
+            <button type="submit" className="btn-login">
+              {isLogin ? 'Увійти' : 'Зареєструватися'}
+            </button>
+          </form>
+
+          <div className="login-footer">
+            <button 
+              className="btn-toggle"
+              onClick={() => setIsLogin(!isLogin)} 
+            >
+              {isLogin ? 'Ще немає акаунта? Створити' : 'Вже є акаунт? Увійти'}
+            </button>
+          </div>
+          
+          {user && (
+            <div style={{ marginTop: '20px', borderTop: '1px solid #eee', paddingTop: '15px' }}>
+              <button onClick={logout} className="btn-logout">
+                Вийти з системи
+              </button>
+            </div>
+          )}
         </div>
-        <div className="form-group">
-          <label className="form-label">Password</label>
-          <input 
-            type="password" 
-            className="form-input" 
-            value={password} 
-            onChange={(e) => setPassword(e.target.value)} 
-            required 
-          />
-        </div>
-        {error && <p style={{ color: 'var(--danger-color)', fontSize: '0.875rem' }}>{error}</p>}
-        <button type="submit" className="button button-primary">
-          {isLogin ? 'Login' : 'Register'}
-        </button>
-      </form>
-      <div style={{ marginTop: 'var(--space-4)', textAlign: 'center' }}>
-        <button 
-          onClick={() => setIsLogin(!isLogin)} 
-          style={{ background: 'none', border: 'none', color: 'var(--primary-color)', cursor: 'pointer', textDecoration: 'underline' }}
-        >
-          {isLogin ? 'Need an account? Register' : 'Already have an account? Login'}
-        </button>
       </div>
+
+      <style>{`
+        .login-page {
+          min-height: 100vh;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+          padding: 20px;
+          font-family: 'Inter', system-ui, -apple-system, sans-serif;
+        }
+        .login-container {
+          width: 100%;
+          max-width: 440px;
+        }
+        .login-card {
+          background: rgba(255, 255, 255, 0.95);
+          backdrop-filter: blur(10px);
+          padding: 40px;
+          border-radius: 24px;
+          box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+        }
+        .login-header {
+          text-align: center;
+          margin-bottom: 32px;
+        }
+        .login-logo {
+          font-size: 3rem;
+          margin-bottom: 16px;
+        }
+        .login-title {
+          font-size: 1.875rem;
+          font-weight: 800;
+          color: #1a202c;
+          margin: 0 0 8px 0;
+          letter-spacing: -0.025em;
+        }
+        .login-subtitle {
+          color: #718096;
+          font-size: 0.95rem;
+          line-height: 1.5;
+        }
+        .login-form {
+          display: flex;
+          flex-direction: column;
+          gap: 20px;
+        }
+        .form-group {
+          display: flex;
+          flex-direction: column;
+          gap: 8px;
+        }
+        .form-label {
+          font-size: 0.875rem;
+          font-weight: 600;
+          color: #4a5568;
+        }
+        .form-input {
+          padding: 12px 16px;
+          border: 1px solid #e2e8f0;
+          border-radius: 12px;
+          font-size: 1rem;
+          transition: all 0.2s;
+          background: #f8fafc;
+        }
+        .form-input:focus {
+          outline: none;
+          border-color: #667eea;
+          background: white;
+          box-shadow: 0 0 0 4px rgba(102, 126, 234, 0.1);
+        }
+        .btn-login {
+          margin-top: 10px;
+          background: #667eea;
+          color: white;
+          border: none;
+          padding: 14px;
+          border-radius: 12px;
+          font-size: 1rem;
+          font-weight: 700;
+          cursor: pointer;
+          transition: transform 0.1s, background 0.2s;
+        }
+        .btn-login:hover {
+          background: #5a67d8;
+        }
+        .btn-login:active {
+          transform: scale(0.98);
+        }
+        .login-footer {
+          margin-top: 24px;
+          text-align: center;
+        }
+        .btn-toggle {
+          background: none;
+          border: none;
+          color: #667eea;
+          font-weight: 600;
+          font-size: 0.9rem;
+          cursor: pointer;
+          transition: color 0.2s;
+        }
+        .btn-toggle:hover {
+          color: #5a67d8;
+          text-decoration: underline;
+        }
+        .error-message {
+          background: #fff5f5;
+          color: #c53030;
+          padding: 12px;
+          border-radius: 8px;
+          font-size: 0.875rem;
+          font-weight: 500;
+          border: 1px solid #fed7d7;
+        }
+        .btn-logout {
+          width: 100%;
+          background: none;
+          border: 1px solid #e2e8f0;
+          color: #718096;
+          padding: 10px;
+          border-radius: 10px;
+          font-size: 0.875rem;
+          font-weight: 600;
+          cursor: pointer;
+          transition: all 0.2s;
+        }
+        .btn-logout:hover {
+          background: #f7fafc;
+          color: #4a5568;
+          border-color: #cbd5e0;
+        }
+        .animate-fade-in {
+          animation: fadeIn 0.5s ease-out;
+        }
+        @keyframes fadeIn {
+          from { opacity: 0; transform: translateY(10px); }
+          to { opacity: 1; transform: translateY(0); }
+        }
+      `}</style>
     </div>
   );
 };

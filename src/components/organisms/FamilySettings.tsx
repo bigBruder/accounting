@@ -41,28 +41,32 @@ export const FamilySettings: React.FC<FamilySettingsProps> = ({ onClose }) => {
 
   return (
     <div className="family-settings-overlay" onClick={onClose}>
-      <div className="family-settings-card" onClick={e => e.stopPropagation()}>
+      <div className="family-settings-card animate-scale-in" onClick={e => e.stopPropagation()}>
         <div className="family-settings-header">
-          <h3>Налаштування сім'ї</h3>
-          <button className="btn-close" onClick={onClose}>&times;</button>
+          <h3 style={{ margin: 0, fontSize: '1.25rem', color: '#1a202c' }}>Налаштування сім'ї</h3>
+          <button className="btn-close" onClick={onClose} aria-label="Close">&times;</button>
         </div>
         
         <div className="family-settings-content">
           <div className="field-group">
-            <label>Ваш код сім'ї (Family ID):</label>
+            <label style={{ display: 'block', marginBottom: '8px', fontWeight: 600, color: '#4a5568' }}>
+              Ваш код сім'ї (Family ID):
+            </label>
             <div className="id-display">
               <code>{familyId}</code>
-              <button onClick={copyToClipboard} className="btn btn--small">
-                {copySuccess ? 'Скопійовано!' : 'Копіювати'}
+              <button onClick={copyToClipboard} className="btn-copy">
+                {copySuccess ? '✓' : '❐'}
               </button>
             </div>
             <p className="hint">Передайте цей код іншому члену сім'ї, щоб об'єднати бюджет.</p>
           </div>
 
-          <hr />
+          <div style={{ margin: '24px 0', borderTop: '1px solid #edf2f7' }}></div>
 
           <form onSubmit={handleJoin} className="family-join-form">
-            <label>Приєднатися до іншої сім'ї:</label>
+            <label style={{ display: 'block', marginBottom: '8px', fontWeight: 600, color: '#4a5568' }}>
+              Приєднатися до іншої сім'ї:
+            </label>
             <div className="input-group">
               <input 
                 type="text" 
@@ -70,9 +74,15 @@ export const FamilySettings: React.FC<FamilySettingsProps> = ({ onClose }) => {
                 value={newId}
                 onChange={e => setNewId(e.target.value)}
                 disabled={loading}
+                className="modal-input"
               />
-              <button type="submit" className="btn btn--primary" disabled={loading || !newId}>
-                Приєднатися
+            </div>
+            <div style={{ marginTop: '20px', display: 'flex', gap: '12px', justifyContent: 'flex-end' }}>
+              <button type="button" className="btn-cancel" onClick={onClose} disabled={loading}>
+                Скасувати
+              </button>
+              <button type="submit" className="btn-join" disabled={loading || !newId}>
+                {loading ? 'Приєднання...' : 'Приєднатися'}
               </button>
             </div>
           </form>
@@ -86,71 +96,128 @@ export const FamilySettings: React.FC<FamilySettingsProps> = ({ onClose }) => {
           left: 0;
           right: 0;
           bottom: 0;
-          background: rgba(0,0,0,0.5);
+          background: rgba(0, 0, 0, 0.6);
+          backdrop-filter: blur(4px);
           display: flex;
           align-items: center;
           justify-content: center;
-          z-index: 1000;
+          z-index: 9999;
+          padding: 20px;
         }
         .family-settings-card {
           background: white;
-          padding: 20px;
-          border-radius: 12px;
-          width: 90%;
-          max-width: 450px;
-          box-shadow: 0 10px 25px rgba(0,0,0,0.2);
+          padding: 28px;
+          border-radius: 16px;
+          width: 100%;
+          max-width: 480px;
+          box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
         }
         .family-settings-header {
           display: flex;
           justify-content: space-between;
           align-items: center;
-          margin-bottom: 20px;
+          margin-bottom: 24px;
         }
         .btn-close {
-          background: none;
+          background: #f7fafc;
           border: none;
           font-size: 1.5rem;
           cursor: pointer;
-          color: #666;
+          color: #a0aec0;
+          width: 32px;
+          height: 32px;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          border-radius: 50%;
+          transition: all 0.2s;
+        }
+        .btn-close:hover {
+          background: #edf2f7;
+          color: #4a5568;
         }
         .id-display {
-          background: #f4f7f6;
-          padding: 10px;
-          border-radius: 6px;
+          background: #f8fafc;
+          padding: 12px 16px;
+          border: 1px solid #e2e8f0;
+          border-radius: 8px;
           display: flex;
           justify-content: space-between;
           align-items: center;
-          margin-top: 8px;
         }
         .id-display code {
-          font-weight: bold;
-          color: #2c3e50;
+          font-weight: 600;
+          color: #2d3748;
           word-break: break-all;
-          margin-right: 10px;
+          font-family: 'Courier New', monospace;
+        }
+        .btn-copy {
+          background: white;
+          border: 1px solid #e2e8f0;
+          padding: 4px 8px;
+          border-radius: 6px;
+          cursor: pointer;
+          font-size: 1.1rem;
+          transition: all 0.2s;
+        }
+        .btn-copy:hover {
+          border-color: #cbd5e0;
+          background: #f7fafc;
         }
         .hint {
-          font-size: 0.8rem;
-          color: #7f8c8d;
-          margin-top: 5px;
-        }
-        .field-group {
-          margin-bottom: 20px;
-        }
-        .input-group {
-          display: flex;
-          gap: 10px;
+          font-size: 0.85rem;
+          color: #718096;
           margin-top: 8px;
         }
-        .input-group input {
-          flex: 1;
-          padding: 8px 12px;
-          border: 1px solid #ddd;
-          border-radius: 6px;
+        .modal-input {
+          width: 100%;
+          padding: 12px 14px;
+          border: 1px solid #e2e8f0;
+          border-radius: 8px;
+          font-size: 1rem;
+          transition: border-color 0.2s;
         }
-        hr {
-          margin: 20px 0;
-          border: 0;
-          border-top: 1px solid #eee;
+        .modal-input:focus {
+          outline: none;
+          border-color: #667eea;
+          box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+        }
+        .btn-join {
+          background: #667eea;
+          color: white;
+          border: none;
+          padding: 10px 20px;
+          border-radius: 8px;
+          font-weight: 600;
+          cursor: pointer;
+          transition: background 0.2s;
+        }
+        .btn-join:hover:not(:disabled) {
+          background: #5a67d8;
+        }
+        .btn-join:disabled {
+          opacity: 0.6;
+          cursor: not-allowed;
+        }
+        .btn-cancel {
+          background: white;
+          color: #4a5568;
+          border: 1px solid #e2e8f0;
+          padding: 10px 20px;
+          border-radius: 8px;
+          font-weight: 600;
+          cursor: pointer;
+          transition: background 0.2s;
+        }
+        .btn-cancel:hover {
+          background: #f7fafc;
+        }
+        .animate-scale-in {
+          animation: scaleIn 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+        }
+        @keyframes scaleIn {
+          from { opacity: 0; transform: scale(0.95); }
+          to { opacity: 1; transform: scale(1); }
         }
       `}</style>
     </div>
