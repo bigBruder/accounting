@@ -6,6 +6,7 @@ import { DashboardPage } from './components/pages/DashboardPage';
 import { TransactionsPage } from './components/pages/TransactionsPage';
 import { CategoriesPage } from './components/pages/CategoriesPage';
 import { LoginPage } from './components/pages/LoginPage';
+import { SettingsPage } from './components/pages/SettingsPage';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
 import { DataProvider } from './contexts/DataContext';
 
@@ -31,6 +32,7 @@ const AppLayout = () => {
               <Route path="/" element={<DashboardPage />} />
               <Route path="/transactions" element={<TransactionsPage />} />
               <Route path="/categories" element={<CategoriesPage />} />
+              <Route path="/settings" element={<SettingsPage />} />
               <Route path="*" element={<Navigate to="/" />} />
             </Routes>
           </main>

@@ -11,6 +11,7 @@ export const Navbar: React.FC = () => {
     { to: '/', label: t('common.dashboard'), icon: 'dashboard' },
     { to: '/transactions', label: t('common.transactions'), icon: 'transactions' },
     { to: '/categories', label: t('common.categories'), icon: 'categories' },
+    { to: '/settings', label: t('common.settings', { defaultValue: 'Налаштування' }), icon: 'settings' },
   ];
 
   return (
