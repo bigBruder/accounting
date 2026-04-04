@@ -14,13 +14,14 @@ export const MonoConnectModal: React.FC<MonoConnectModalProps> = ({ onClose, onS
   const [loading, setLoading] = useState(false);
 
   const handleConnect = async () => {
-    if (!token.trim()) return;
+    const cleanToken = token.trim();
+    if (!cleanToken) return;
     
     setLoading(true);
     try {
-      await updateMonobankToken(token.trim());
-      // Auto-sync after successful connection
-      await syncMonobank();
+      await updateMonobankToken(cleanToken);
+      // Auto-sync after successful connection with direct token for speed
+      await syncMonobank(cleanToken);
       onSuccess();
     } catch (err: any) {
       console.error(err);

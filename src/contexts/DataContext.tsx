@@ -10,14 +10,14 @@ interface DataContextType {
   transactions: Transaction[];
   categories: Category[];
   loading: boolean;
-  syncMonobank: () => Promise<void>;
+  syncMonobank: (manualToken?: string) => Promise<void>;
 }
 
 const DataContext = createContext<DataContextType>({ 
   transactions: [], 
   categories: [], 
   loading: true,
-  syncMonobank: async () => {} 
+  syncMonobank: async (_?: string) => {} 
 });
 
 export const useData = () => useContext(DataContext);
@@ -66,13 +66,14 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
     };
   }, [user, familyId]);
 
-  const syncMonobank = async () => {
-    if (!user || !familyId || !monobankToken) {
+  const syncMonobank = async (manualToken?: string) => {
+    const activeToken = manualToken || monobankToken;
+    if (!user || !familyId || !activeToken) {
       throw new Error('Monobank token not found. Please add it in settings.');
     }
 
     try {
-      const clientInfo = await MonobankService.getClientInfo(monobankToken);
+      const clientInfo = await MonobankService.getClientInfo(activeToken);
       const now = Math.floor(Date.now() / 1000);
       const thirtyDaysAgo = now - (30 * 24 * 60 * 60);
 
@@ -82,19 +83,20 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
           .map(t => t.externalId)
       );
 
-      let newCount = 0;
+      const syncPromises: Promise<any>[] = [];
+      
       for (const account of clientInfo.accounts) {
         // Fetch last 30 days of transactions for this account
-        const monoTxs = await MonobankService.getStatement(monobankToken, account.id, thirtyDaysAgo);
+        const monoTxs = await MonobankService.getStatement(activeToken, account.id, thirtyDaysAgo);
         
         for (const tx of monoTxs) {
           if (existingExternalIds.has(tx.id)) continue;
 
-          const categoryName = MonobankService.mapMccToCategory(tx.mcc);
-          const category = categories.find(c => c.name === categoryName) || 
+          const categoryId = MonobankService.mapToCategoryId(tx.mcc, tx.description);
+          const category = categories.find(c => c.id === categoryId) || 
                            categories.find(c => c.id === 'other-expense');
 
-          await addTransaction(familyId, {
+          syncPromises.push(addTransaction(familyId, {
             type: tx.amount > 0 ? 'income' : 'expense',
             amount: Math.abs(tx.amount / 100),
             categoryId: category?.id || 'other-expense',
@@ -104,13 +106,13 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
             externalId: tx.id,
             createdBy: user.uid,
             createdByName: user.displayName || user.email || 'Невідомий'
-          });
-          newCount++;
+          }));
         }
       }
       
-      if (newCount > 0) {
-        console.log(`Successfully synced ${newCount} transactions from Monobank.`);
+      if (syncPromises.length > 0) {
+        await Promise.all(syncPromises);
+        console.log(`Successfully synced ${syncPromises.length} transactions from Monobank.`);
       }
     } catch (error) {
       console.error('Failed to sync Monobank:', error);
