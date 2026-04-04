@@ -65,16 +65,17 @@ export const DashboardPage: React.FC = () => {
       <div className="page-header">
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
           <h1 className="page-title">{t('dashboard.title')}</h1>
-          {monobankToken && (
-            <button 
-              className={`btn ${cooldown > 0 ? 'btn-ghost' : 'btn-primary'}`}
-              onClick={handleSync}
-              disabled={syncLoading || cooldown > 0}
-              style={{ display: 'flex', alignItems: 'center', gap: '8px' }}
-            >
-              {syncLoading ? '🔄 Синхронізація...' : cooldown > 0 ? `⏳ Зачекайте ${cooldown}с` : '🏦 Синхронізувати з Monobank'}
-            </button>
-          )}
+          <button 
+            className={`btn ${!monobankToken ? 'btn-secondary' : cooldown > 0 ? 'btn-ghost' : 'btn-primary'}`}
+            onClick={handleSync}
+            disabled={syncLoading || cooldown > 0}
+            style={{ display: 'flex', alignItems: 'center', gap: '8px' }}
+          >
+            {syncLoading ? '🔄 Синхронізація...' : 
+             !monobankToken ? '🏦 Підключити Monobank' :
+             cooldown > 0 ? `⏳ Зачекайте ${cooldown}с` : 
+             '🏦 Синхронізувати з Monobank'}
+          </button>
         </div>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 'var(--space-4)' }}>
           <p className="page-subtitle">{t('dashboard.subtitle')}</p>

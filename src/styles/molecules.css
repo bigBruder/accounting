@@ -120,6 +120,23 @@
   text-overflow: ellipsis;
 }
 
+.transaction-item__meta span:not(:last-child)::after {
+  content: '•';
+  margin: 0 var(--space-2);
+  color: var(--color-text-muted);
+}
+
+.transaction-item__author {
+  color: var(--color-primary);
+  font-weight: 500;
+  font-size: 0.75rem;
+  background: var(--color-primary-light, rgba(99, 102, 241, 0.1));
+  padding: 2px 8px;
+  border-radius: 12px;
+  display: inline-flex;
+  align-items: center;
+}
+
 .transaction-item__meta {
   font-size: var(--fs-xs);
   color: var(--text-muted);

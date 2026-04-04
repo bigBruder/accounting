@@ -101,7 +101,9 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
             description: tx.description,
             date: new Date(tx.time * 1000).toISOString().split('T')[0],
             createdAt: tx.time * 1000,
-            externalId: tx.id
+            externalId: tx.id,
+            createdBy: user.uid,
+            createdByName: user.displayName || user.email || 'Невідомий'
           });
           newCount++;
         }

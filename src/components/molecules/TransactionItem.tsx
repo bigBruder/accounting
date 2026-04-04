@@ -22,6 +22,11 @@ export const TransactionItem: React.FC<TransactionItemProps> = ({ transaction, c
         <div className="transaction-item__meta">
           <span className="transaction-item__category">{category?.name || 'Unknown'}</span>
           <span className="transaction-item__date">{formatDate(transaction.date)}</span>
+          {transaction.createdByName && (
+            <span className="transaction-item__author" title={`Додав: ${transaction.createdByName}`}>
+              👤 {transaction.createdByName}
+            </span>
+          )}
         </div>
       </div>
       <div className={`transaction-item__amount transaction-item__amount--${transaction.type}`}>

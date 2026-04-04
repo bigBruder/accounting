@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useData } from '../../contexts/DataContext';
+import { useAuth } from '../../contexts/AuthContext';
 import type { TransactionFormData } from '../../models/types';
 
 interface TransactionFormProps {
@@ -11,6 +12,7 @@ interface TransactionFormProps {
 export const TransactionForm: React.FC<TransactionFormProps> = ({ onSubmit, initialData }) => {
   const { t } = useTranslation();
   const { categories } = useData();
+  const { user } = useAuth();
   
   const [formData, setFormData] = useState<TransactionFormData>({
     description: initialData?.description || '',
@@ -23,7 +25,16 @@ export const TransactionForm: React.FC<TransactionFormProps> = ({ onSubmit, init
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!formData.description || !formData.amount || !formData.categoryId) return;
-    onSubmit(formData);
+    
+    // Add user identification
+    const enrichedData: TransactionFormData = {
+      ...formData,
+      createdBy: user?.uid || '',
+      createdByName: user?.displayName || user?.email || t('common.unknownUser', { defaultValue: 'Невідомий' })
+    };
+    
+    onSubmit(enrichedData);
+    
     // Reset form after submit
     setFormData({
       description: '',

@@ -9,6 +9,8 @@ export interface Transaction {
   date: string; // ISO date string
   createdAt: number;
   externalId?: string; // ID from external source (like Monobank)
+  createdBy?: string;  // User UID
+  createdByName?: string; // User Name or Email
 }
 
 export interface TransactionFormData {
@@ -17,6 +19,8 @@ export interface TransactionFormData {
   categoryId: string;
   description: string;
   date: string;
+  createdBy?: string;
+  createdByName?: string;
 }
 
 export interface Category {

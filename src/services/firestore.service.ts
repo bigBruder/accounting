@@ -13,6 +13,8 @@ export const addTransaction = async (
     ...data,
     id: data.id || docRef.id,
     createdAt: data.createdAt || Date.now(),
+    createdBy: data.createdBy || '',
+    createdByName: data.createdByName || ''
   });
 };
 
