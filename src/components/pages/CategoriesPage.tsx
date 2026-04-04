@@ -9,19 +9,19 @@ import { Icon } from '../atoms/Icon';
 export const CategoriesPage: React.FC = () => {
   const { t } = useTranslation();
   const { categories, loading } = useData();
-  const { user } = useAuth();
+  const { familyId } = useAuth();
   const [newCat, setNewCat] = useState({ name: '', icon: '🏷️', color: '#8b5cf6', type: 'expense' as TransactionType });
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!newCat.name || !newCat.icon || !user) return;
-    await addCategory(user.uid, newCat);
+    if (!newCat.name || !newCat.icon || !familyId) return;
+    await addCategory(familyId, newCat);
     setNewCat({ name: '', icon: '🏷️', color: '#8b5cf6', type: 'expense' });
   };
 
   const handleDelete = async (id: string) => {
-    if (user) {
-      await deleteCategory(user.uid, id);
+    if (familyId) {
+      await deleteCategory(familyId, id);
     }
   };
 

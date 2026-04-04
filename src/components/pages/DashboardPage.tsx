@@ -14,13 +14,13 @@ export const DashboardPage: React.FC = () => {
   const { t } = useTranslation();
   const [filters, setFilters] = useState<FilterOptions>({});
   const { transactions, loading } = useData();
-  const { user } = useAuth();
+  const { familyId } = useAuth();
   
   const recentTransactions = getRecentTransactions(transactions, 5, filters);
 
   const handleDelete = async (id: string) => {
-    if (user) {
-      await deleteTransaction(user.uid, id);
+    if (familyId) {
+      await deleteTransaction(familyId, id);
     }
   };
 

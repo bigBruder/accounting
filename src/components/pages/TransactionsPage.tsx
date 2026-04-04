@@ -12,19 +12,19 @@ export const TransactionsPage: React.FC = () => {
   const { t } = useTranslation();
   const [filters, setFilters] = useState<FilterOptions>({});
   const { transactions, loading } = useData();
-  const { user } = useAuth();
+  const { familyId } = useAuth();
 
   const filteredTransactions = getFilteredTransactions(transactions, filters);
 
   const handleSubmit = async (data: any) => {
-    if (user) {
-      await addTransaction(user.uid, data);
+    if (familyId) {
+      await addTransaction(familyId, data);
     }
   };
 
   const handleDelete = async (id: string) => {
-    if (user) {
-      await deleteTransaction(user.uid, id);
+    if (familyId) {
+      await deleteTransaction(familyId, id);
     }
   };
 
