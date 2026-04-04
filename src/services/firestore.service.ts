@@ -1,6 +1,6 @@
 import { collection, doc, setDoc, deleteDoc, updateDoc, query, where, getDocs } from 'firebase/firestore';
 import { db } from './firebase';
-import type { Transaction, Category } from '../models/types';
+import { type Transaction, type Category, type Goal } from '../models/types';
 import { DEFAULT_CATEGORIES } from '../models/types';
 
 export interface FamilyMember {
@@ -60,4 +60,22 @@ export const initializeDefaultCategories = async (familyId: string): Promise<voi
   for (const cat of DEFAULT_CATEGORIES) {
     await setDoc(doc(colRef, cat.id), cat);
   }
+};
+
+export const addGoal = async (familyId: string, data: Omit<Goal, 'id' | 'createdAt'>): Promise<void> => {
+  const colRef = collection(db, `families/${familyId}/goals`);
+  const docRef = doc(colRef);
+  await setDoc(docRef, { 
+    ...data, 
+    id: docRef.id, 
+    createdAt: Date.now() 
+  });
+};
+
+export const updateGoal = async (familyId: string, id: string, data: Partial<Goal>): Promise<void> => {
+  await updateDoc(doc(db, `families/${familyId}/goals/${id}`), data);
+};
+
+export const deleteGoal = async (familyId: string, id: string): Promise<void> => {
+  await deleteDoc(doc(db, `families/${familyId}/goals/${id}`));
 };

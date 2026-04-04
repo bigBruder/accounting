@@ -69,3 +69,15 @@ export const DEFAULT_CATEGORIES: Category[] = [
   { id: 'other-expense', name: 'Інше', icon: '📤', color: '#94a3b8', type: 'expense' },
   { id: 'transfer', name: 'Переказ', icon: '🔄', color: '#60a5fa', type: 'transfer' },
 ];
+
+export interface Goal {
+  id: string;
+  name: string;
+  targetAmount: number;
+  currentAmount: number;
+  icon: string;
+  color: string;
+  description?: string;
+  deadline?: string;
+  createdAt: number;
+}

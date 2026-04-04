@@ -5,6 +5,7 @@ import { TransactionList } from '../organisms/TransactionList';
 import { CategoryBreakdown } from '../organisms/CategoryBreakdown';
 import { ExpenseDonut } from '../organisms/ExpenseDonut';
 import { SpendingTrend } from '../organisms/SpendingTrend';
+import { GoalsWidget } from '../organisms/GoalsWidget';
 import { DateRangePicker } from '../molecules/DateRangePicker';
 import { MonoConnectModal } from '../organisms/MonoConnectModal';
 import { getRecentTransactions } from '../../services/budget.service';
@@ -17,7 +18,6 @@ import type { FilterOptions } from '../../models/types';
 export const DashboardPage: React.FC = () => {
   const { t } = useTranslation();
   
-  // Set default filters to current week (Monday to Sunday)
   const defaultFrom = format(startOfWeek(new Date(), { weekStartsOn: 1 }), 'yyyy-MM-dd');
   const defaultTo = format(endOfWeek(new Date(), { weekStartsOn: 1 }), 'yyyy-MM-dd');
 
@@ -48,11 +48,10 @@ export const DashboardPage: React.FC = () => {
       setIsMonoModalOpen(true);
       return;
     }
-    
     setSyncLoading(true);
     try {
       await syncMonobank();
-      setCooldown(60); // Monobank rate limit is 60s
+      setCooldown(60);
       alert('Синхронізація завершена успішно!');
     } catch (err: any) {
       alert(err.message || 'Помилка при синхронізації.');
@@ -81,7 +80,7 @@ export const DashboardPage: React.FC = () => {
   };
 
   if (loading) return (
-    <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100%' }}>
+    <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh' }}>
       <div className="loader">Завантаження...</div>
     </div>
   );
@@ -95,7 +94,6 @@ export const DashboardPage: React.FC = () => {
             className={`mono-sync-btn ${syncLoading ? 'mono-sync-btn--loading' : ''} ${!monobankToken ? 'mono-btn-connect' : ''}`}
             onClick={handleSync}
             disabled={syncLoading || cooldown > 0}
-            title={monobankToken ? 'Синхронізувати з Monobank' : 'Підключити Monobank'}
           >
             <span className="mono-sync-btn__icon">🐈‍⬛</span>
             <span>{syncLoading ? 'Оновлення...' : !monobankToken ? 'Connect Mono' : cooldown > 0 ? `Зачекайте ${cooldown}с` : 'Mono Sync'}</span>
@@ -113,23 +111,7 @@ export const DashboardPage: React.FC = () => {
         </div>
       </div>
       
-      <DashboardStats filters={filters} />
-
-      {/* Charts Row */}
-      <div className="grid-2" style={{ marginTop: 'var(--space-6)' }}>
-        <div id="spending-trend">
-          <SpendingTrend filters={filters} />
-        </div>
-        <div id="expense-donut">
-          <ExpenseDonut 
-            filters={filters} 
-            activeCategoryId={filters.categoryId}
-            onCategoryClick={handleCategoryClick}
-          />
-        </div>
-      </div>
-
-      {/* Transactions + Category Breakdown */}
+      {/* 1. TOP: Transactions + Category Breakdown */}
       <div className="grid-2" style={{ marginTop: 'var(--space-6)' }}>
         <div id="recent-transactions">
           <TransactionList 
@@ -146,6 +128,30 @@ export const DashboardPage: React.FC = () => {
             onCategoryClick={handleCategoryClick}
           />
         </div>
+      </div>
+
+      {/* 2. STATS */}
+      <div style={{ marginTop: 'var(--space-8)' }}>
+        <DashboardStats filters={filters} />
+      </div>
+
+      {/* 3. CHARTS ROW */}
+      <div className="grid-2" style={{ marginTop: 'var(--space-8)' }}>
+        <div id="spending-trend">
+          <SpendingTrend filters={filters} />
+        </div>
+        <div id="expense-donut">
+          <ExpenseDonut 
+            filters={filters} 
+            activeCategoryId={filters.categoryId}
+            onCategoryClick={handleCategoryClick}
+          />
+        </div>
+      </div>
+
+      {/* 4. GOALS */}
+      <div style={{ marginTop: 'var(--space-8)' }}>
+        <GoalsWidget />
       </div>
 
       {isMonoModalOpen && (

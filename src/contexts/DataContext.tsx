@@ -2,24 +2,32 @@ import React, { createContext, useContext, useEffect, useState } from 'react';
 import { collection, onSnapshot } from 'firebase/firestore';
 import { db } from '../services/firebase';
 import { useAuth } from './AuthContext';
-import type { Transaction, Category } from '../models/types';
-import { initializeDefaultCategories, addTransaction, getFamilyMembers, updateTransaction } from '../services/firestore.service';
+import { type Transaction, type Category, type Goal } from '../models/types';
+import { initializeDefaultCategories, addTransaction, getFamilyMembers, updateTransaction, addGoal, updateGoal, deleteGoal } from '../services/firestore.service';
 import { MonobankService } from '../services/monobank.service';
 
 interface DataContextType {
   transactions: Transaction[];
   categories: Category[];
+  goals: Goal[];
   loading: boolean;
   syncMonobank: (manualToken?: string) => Promise<void>;
   fixExistingTransfers: () => Promise<number>;
+  addGoal: (goal: Omit<Goal, 'id' | 'createdAt'>) => Promise<void>;
+  updateGoal: (id: string, data: Partial<Goal>) => Promise<void>;
+  deleteGoal: (id: string) => Promise<void>;
 }
 
 const DataContext = createContext<DataContextType>({ 
   transactions: [], 
   categories: [], 
+  goals: [],
   loading: true,
   syncMonobank: async (_?: string) => {},
-  fixExistingTransfers: async () => 0
+  fixExistingTransfers: async () => 0,
+  addGoal: async () => {},
+  updateGoal: async () => {},
+  deleteGoal: async () => {},
 });
 
 export const useData = () => useContext(DataContext);
@@ -28,12 +36,14 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const { user, familyId } = useAuth();
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
+  const [goals, setGoals] = useState<Goal[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     if (!user || !familyId) {
       setTransactions([]);
       setCategories([]);
+      setGoals([]);
       if (!user) setLoading(false);
       return;
     }
@@ -42,6 +52,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
     const txCol = collection(db, `families/${familyId}/transactions`);
     const catCol = collection(db, `families/${familyId}/categories`);
+    const goalCol = collection(db, `families/${familyId}/goals`);
 
     const unsubTx = onSnapshot(txCol, (snapshot) => {
       const data = snapshot.docs.map(doc => doc.data() as Transaction);
@@ -57,6 +68,11 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
       }
     });
 
+    const unsubGoals = onSnapshot(goalCol, (snapshot) => {
+      const data = snapshot.docs.map(doc => doc.data() as Goal);
+      setGoals(data.sort((a, b) => b.createdAt - a.createdAt));
+    });
+
     const loadTimeout = setTimeout(() => {
       setLoading(false);
     }, 1000);
@@ -64,6 +80,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
     return () => {
       unsubTx();
       unsubCat();
+      unsubGoals();
       clearTimeout(loadTimeout);
     };
   }, [user, familyId]);
@@ -265,8 +282,30 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
     return matched.size;
   };
 
+  const handleAddGoal = async (data: Omit<Goal, 'id' | 'createdAt'>) => {
+    if (familyId) await addGoal(familyId, data);
+  };
+
+  const handleUpdateGoal = async (id: string, data: Partial<Goal>) => {
+    if (familyId) await updateGoal(familyId, id, data);
+  };
+
+  const handleDeleteGoal = async (id: string) => {
+    if (familyId) await deleteGoal(familyId, id);
+  };
+
   return (
-    <DataContext.Provider value={{ transactions, categories, loading, syncMonobank, fixExistingTransfers }}>
+    <DataContext.Provider value={{ 
+      transactions, 
+      categories, 
+      goals, 
+      loading, 
+      syncMonobank, 
+      fixExistingTransfers,
+      addGoal: handleAddGoal,
+      updateGoal: handleUpdateGoal,
+      deleteGoal: handleDeleteGoal
+    }}>
       {children}
     </DataContext.Provider>
   );

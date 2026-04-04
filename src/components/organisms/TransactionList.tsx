@@ -5,6 +5,7 @@ import { DateRangePicker } from '../molecules/DateRangePicker';
 import { EmptyState } from '../molecules/EmptyState';
 import type { Transaction } from '../../models/types';
 import { useData } from '../../contexts/DataContext';
+import { exportToCSV } from '../../utils/exportUtils';
 
 interface TransactionListProps {
   transactions: Transaction[];
@@ -72,8 +73,18 @@ export const TransactionList: React.FC<TransactionListProps> = ({
 
   return (
     <div className="transaction-list">
-      <div className="transaction-list__header" style={{ flexDirection: 'column', alignItems: 'flex-start', gap: 'var(--space-4)' }}>
+      <div className="transaction-list__header" style={{ display: 'flex', flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 'var(--space-2)', marginBottom: 'var(--space-2)' }}>
         <h3 className="section-title" style={{ marginBottom: 0 }}>{displayTitle}</h3>
+        <button 
+          className="create-goal-header-btn"
+          onClick={() => exportToCSV(filteredTransactions, categories)}
+          style={{ fontSize: '0.75rem', padding: '6px 12px', height: 'auto', gap: '4px' }}
+        >
+          📥 Експорт CSV
+        </button>
+      </div>
+
+      <div className="transaction-list__header-tabs" style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-4)' }}>
         
         <div className="tab-switcher" style={{ width: '100%' }}>
           <div 
