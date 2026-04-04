@@ -1,38 +1,30 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { DashboardStats } from '../organisms/DashboardStats';
 import { TransactionList } from '../organisms/TransactionList';
 import { CategoryBreakdown } from '../organisms/CategoryBreakdown';
 import { DateRangePicker } from '../molecules/DateRangePicker';
 import { getRecentTransactions } from '../../services/budget.service';
-import { deleteTransaction } from '../../services/storage.service';
-import { eventBus, Events } from '../../services/event-bus';
+import { deleteTransaction } from '../../services/firestore.service';
+import { useData } from '../../contexts/DataContext';
+import { useAuth } from '../../contexts/AuthContext';
 import type { FilterOptions } from '../../models/types';
 
 export const DashboardPage: React.FC = () => {
   const { t } = useTranslation();
   const [filters, setFilters] = useState<FilterOptions>({});
-  const [recentTransactions, setRecentTransactions] = useState(getRecentTransactions(5));
+  const { transactions, loading } = useData();
+  const { user } = useAuth();
+  
+  const recentTransactions = getRecentTransactions(transactions, 5, filters);
 
-  const refresh = () => {
-    setRecentTransactions(getRecentTransactions(5, filters));
+  const handleDelete = async (id: string) => {
+    if (user) {
+      await deleteTransaction(user.uid, id);
+    }
   };
 
-  useEffect(() => {
-    refresh();
-    eventBus.on(Events.TRANSACTION_ADDED, refresh);
-    eventBus.on(Events.TRANSACTION_DELETED, refresh);
-    return () => {
-      eventBus.off(Events.TRANSACTION_ADDED, refresh);
-      eventBus.off(Events.TRANSACTION_DELETED, refresh);
-    };
-  }, [filters]);
-
-  const handleDelete = (id: string) => {
-    deleteTransaction(id);
-    eventBus.emit(Events.TRANSACTION_DELETED);
-    refresh();
-  };
+  if (loading) return <div>Loading...</div>;
 
   return (
     <div className="page animate-fade-in">

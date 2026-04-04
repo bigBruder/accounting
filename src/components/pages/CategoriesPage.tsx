@@ -1,31 +1,31 @@
 import React, { useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { getCategories, addCategory, deleteCategory } from '../../services/storage.service';
-import { eventBus, Events } from '../../services/event-bus';
+import { addCategory, deleteCategory } from '../../services/firestore.service';
+import { useData } from '../../contexts/DataContext';
+import { useAuth } from '../../contexts/AuthContext';
 import type { TransactionType, Category } from '../../models/types';
 import { Icon } from '../atoms/Icon';
 
 export const CategoriesPage: React.FC = () => {
   const { t } = useTranslation();
-  const [categories, setCategories] = useState(getCategories());
+  const { categories, loading } = useData();
+  const { user } = useAuth();
   const [newCat, setNewCat] = useState({ name: '', icon: '🏷️', color: '#8b5cf6', type: 'expense' as TransactionType });
 
-  const refresh = () => setCategories(getCategories());
-
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!newCat.name || !newCat.icon) return;
-    addCategory(newCat);
-    eventBus.emit(Events.CATEGORY_ADDED);
+    if (!newCat.name || !newCat.icon || !user) return;
+    await addCategory(user.uid, newCat);
     setNewCat({ name: '', icon: '🏷️', color: '#8b5cf6', type: 'expense' });
-    refresh();
   };
 
-  const handleDelete = (id: string) => {
-    deleteCategory(id);
-    eventBus.emit(Events.CATEGORY_DELETED);
-    refresh();
+  const handleDelete = async (id: string) => {
+    if (user) {
+      await deleteCategory(user.uid, id);
+    }
   };
+
+  if (loading) return <div>Loading...</div>;
 
   const incomeCategories = categories.filter(c => c.type === 'income');
   const expenseCategories = categories.filter(c => c.type === 'expense');

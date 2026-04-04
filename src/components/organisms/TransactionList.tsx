@@ -4,7 +4,7 @@ import { TransactionItem } from '../molecules/TransactionItem';
 import { DateRangePicker } from '../molecules/DateRangePicker';
 import { EmptyState } from '../molecules/EmptyState';
 import type { Transaction } from '../../models/types';
-import { getCategoryById } from '../../services/storage.service';
+import { useData } from '../../contexts/DataContext';
 
 interface TransactionListProps {
   transactions: Transaction[];
@@ -30,6 +30,7 @@ export const TransactionList: React.FC<TransactionListProps> = ({
   const [dateTo, setDateTo] = useState('');
 
   const displayTitle = title || t('common.transactions');
+  const { categories } = useData();
 
   const handleFilterChange = (updates: Partial<{ type: string; search: string; dateFrom: string; dateTo: string }>) => {
     const newFilters = {
@@ -93,7 +94,7 @@ export const TransactionList: React.FC<TransactionListProps> = ({
             <TransactionItem 
               key={transaction.id}
               transaction={transaction}
-              category={getCategoryById(transaction.categoryId)}
+              category={categories.find(c => c.id === transaction.categoryId)}
               onDelete={onDelete}
             />
           ))

@@ -1,42 +1,34 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { TransactionForm } from '../organisms/TransactionForm';
 import { TransactionList } from '../organisms/TransactionList';
-import { addTransaction, deleteTransaction } from '../../services/storage.service';
+import { addTransaction, deleteTransaction } from '../../services/firestore.service';
 import { getFilteredTransactions } from '../../services/budget.service';
-import { eventBus, Events } from '../../services/event-bus';
+import { useData } from '../../contexts/DataContext';
+import { useAuth } from '../../contexts/AuthContext';
 import type { FilterOptions } from '../../models/types';
 
 export const TransactionsPage: React.FC = () => {
   const { t } = useTranslation();
   const [filters, setFilters] = useState<FilterOptions>({});
-  const [transactions, setTransactions] = useState(getFilteredTransactions());
+  const { transactions, loading } = useData();
+  const { user } = useAuth();
 
-  const refreshList = () => {
-    setTransactions(getFilteredTransactions(filters));
+  const filteredTransactions = getFilteredTransactions(transactions, filters);
+
+  const handleSubmit = async (data: any) => {
+    if (user) {
+      await addTransaction(user.uid, data);
+    }
   };
 
-  useEffect(() => {
-    refreshList();
-    eventBus.on(Events.TRANSACTION_ADDED, refreshList);
-    eventBus.on(Events.TRANSACTION_DELETED, refreshList);
-    return () => {
-      eventBus.off(Events.TRANSACTION_ADDED, refreshList);
-      eventBus.off(Events.TRANSACTION_DELETED, refreshList);
-    };
-  }, [filters]);
-
-  const handleSubmit = (data: any) => {
-    addTransaction(data);
-    eventBus.emit(Events.TRANSACTION_ADDED);
-    refreshList();
+  const handleDelete = async (id: string) => {
+    if (user) {
+      await deleteTransaction(user.uid, id);
+    }
   };
 
-  const handleDelete = (id: string) => {
-    deleteTransaction(id);
-    eventBus.emit(Events.TRANSACTION_DELETED);
-    refreshList();
-  };
+  if (loading) return <div>Loading...</div>;
 
   return (
     <div className="page animate-fade-in">
@@ -51,7 +43,7 @@ export const TransactionsPage: React.FC = () => {
       
       <div id="transaction-list-container">
         <TransactionList 
-          transactions={transactions}
+          transactions={filteredTransactions}
           title={t('common.allTransactions', { defaultValue: 'Усі транзакції' })}
           showFilters={true}
           onDelete={handleDelete}

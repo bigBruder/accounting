@@ -1,12 +1,11 @@
 import type { Transaction, FilterOptions, BudgetSummary, CategorySummary, Category } from '../models/types';
-import { getTransactions, getCategories } from './storage.service';
 
-export function getBudgetSummary(filters: FilterOptions = {}): BudgetSummary {
-  const transactions = getFilteredTransactions(filters);
-  const totalIncome = transactions
+export function getBudgetSummary(transactions: Transaction[], filters: FilterOptions = {}): BudgetSummary {
+  const filtered = getFilteredTransactions(transactions, filters);
+  const totalIncome = filtered
     .filter(t => t.type === 'income')
     .reduce((sum, t) => sum + t.amount, 0);
-  const totalExpense = transactions
+  const totalExpense = filtered
     .filter(t => t.type === 'expense')
     .reduce((sum, t) => sum + t.amount, 0);
   return {
@@ -16,50 +15,50 @@ export function getBudgetSummary(filters: FilterOptions = {}): BudgetSummary {
   };
 }
 
-export function getFilteredTransactions(filters: FilterOptions = {}): Transaction[] {
-  let transactions = getTransactions();
+export function getFilteredTransactions(transactions: Transaction[], filters: FilterOptions = {}): Transaction[] {
+  let result = [...transactions];
 
   if (filters.type && filters.type !== 'all') {
-    transactions = transactions.filter(t => t.type === filters.type);
+    result = result.filter(t => t.type === filters.type);
   }
   if (filters.categoryId) {
-    transactions = transactions.filter(t => t.categoryId === filters.categoryId);
+    result = result.filter(t => t.categoryId === filters.categoryId);
   }
   if (filters.dateFrom) {
-    transactions = transactions.filter(t => t.date >= filters.dateFrom!);
+    result = result.filter(t => t.date >= filters.dateFrom!);
   }
   if (filters.dateTo) {
-    transactions = transactions.filter(t => t.date <= filters.dateTo!);
+    result = result.filter(t => t.date <= filters.dateTo!);
   }
   if (filters.search) {
     const q = filters.search.toLowerCase();
-    transactions = transactions.filter(t =>
+    result = result.filter(t =>
       t.description.toLowerCase().includes(q)
     );
   }
 
-  return transactions.sort((a, b) => {
+  return result.sort((a, b) => {
     const dateDiff = b.date.localeCompare(a.date);
     return dateDiff !== 0 ? dateDiff : b.createdAt - a.createdAt;
   });
 }
 
-export function getRecentTransactions(count: number = 5, filters: FilterOptions = {}): Transaction[] {
-  return getFilteredTransactions(filters).slice(0, count);
+export function getRecentTransactions(transactions: Transaction[], count: number = 5, filters: FilterOptions = {}): Transaction[] {
+  return getFilteredTransactions(transactions, filters).slice(0, count);
 }
 
-export function getCategoryBreakdown(type: 'expense' | 'income' = 'expense', filters: FilterOptions = {}): CategorySummary[] {
-  const transactions = getFilteredTransactions({ ...filters, type });
-  const categories = getCategories().filter(c => c.type === type);
-  const total = transactions.reduce((sum, t) => sum + t.amount, 0);
+export function getCategoryBreakdown(transactions: Transaction[], categories: Category[], type: 'expense' | 'income' = 'expense', filters: FilterOptions = {}): CategorySummary[] {
+  const filtered = getFilteredTransactions(transactions, { ...filters, type });
+  const typeCategories = categories.filter(c => c.type === type);
+  const total = filtered.reduce((sum, t) => sum + t.amount, 0);
 
   const map = new Map<string, { category: Category; amount: number; count: number }>();
 
-  for (const cat of categories) {
+  for (const cat of typeCategories) {
     map.set(cat.id, { category: cat, amount: 0, count: 0 });
   }
 
-  for (const t of transactions) {
+  for (const t of filtered) {
     const entry = map.get(t.categoryId);
     if (entry) {
       entry.amount += t.amount;

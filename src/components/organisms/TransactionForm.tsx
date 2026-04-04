@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { getCategories } from '../../services/storage.service';
+import { useData } from '../../contexts/DataContext';
 import type { TransactionFormData } from '../../models/types';
 
 interface TransactionFormProps {
@@ -10,7 +10,7 @@ interface TransactionFormProps {
 
 export const TransactionForm: React.FC<TransactionFormProps> = ({ onSubmit, initialData }) => {
   const { t } = useTranslation();
-  const categories = getCategories();
+  const { categories } = useData();
   
   const [formData, setFormData] = useState<TransactionFormData>({
     description: initialData?.description || '',

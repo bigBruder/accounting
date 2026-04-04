@@ -2,6 +2,7 @@ import React from 'react';
 import { useTranslation } from 'react-i18next';
 import { getCategoryBreakdown } from '../../services/budget.service';
 import { formatAmount } from '../../utils/formatters';
+import { useData } from '../../contexts/DataContext';
 import type { FilterOptions } from '../../models/types';
 
 interface CategoryBreakdownProps {
@@ -10,7 +11,8 @@ interface CategoryBreakdownProps {
 
 export const CategoryBreakdown: React.FC<CategoryBreakdownProps> = ({ filters = {} }) => {
   const { t } = useTranslation();
-  const items = getCategoryBreakdown('expense', filters);
+  const { transactions, categories } = useData();
+  const items = getCategoryBreakdown(transactions, categories, 'expense', filters);
 
   const title = t('common.categoryBreakdown', { defaultValue: 'Витрати по категоріях' });
 
