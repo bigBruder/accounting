@@ -6,8 +6,9 @@ interface FamilySettingsProps {
 }
 
 export const FamilySettings: React.FC<FamilySettingsProps> = ({ onClose }) => {
-  const { familyId, joinFamily } = useAuth();
+  const { familyId, joinFamily, monobankToken, updateMonobankToken } = useAuth();
   const [newId, setNewId] = useState('');
+  const [tempToken, setTempToken] = useState(monobankToken || '');
   const [loading, setLoading] = useState(false);
   const [copySuccess, setCopySuccess] = useState(false);
 
@@ -28,6 +29,19 @@ export const FamilySettings: React.FC<FamilySettingsProps> = ({ onClose }) => {
       } finally {
         setLoading(false);
       }
+    }
+  };
+
+  const handleSaveToken = async () => {
+    setLoading(true);
+    try {
+      await updateMonobankToken(tempToken.trim());
+      alert('Monobank Token збережено!');
+    } catch (err) {
+      console.error(err);
+      alert('Помилка при збереженні токена.');
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -61,13 +75,13 @@ export const FamilySettings: React.FC<FamilySettingsProps> = ({ onClose }) => {
             <p className="hint">Передайте цей код іншому члену сім'ї, щоб об'єднати бюджет.</p>
           </div>
 
-          <div style={{ margin: '24px 0', borderTop: '1px solid #edf2f7' }}></div>
+          <hr style={{ margin: '24px 0', border: '0', borderTop: '1px solid #edf2f7' }} />
 
           <form onSubmit={handleJoin} className="family-join-form">
             <label style={{ display: 'block', marginBottom: '8px', fontWeight: 600, color: '#4a5568' }}>
               Приєднатися до іншої сім'ї:
             </label>
-            <div className="input-group">
+            <div className="input-group" style={{ display: 'flex', gap: '10px' }}>
               <input 
                 type="text" 
                 placeholder="Введіть код сім'ї..." 
@@ -76,16 +90,44 @@ export const FamilySettings: React.FC<FamilySettingsProps> = ({ onClose }) => {
                 disabled={loading}
                 className="modal-input"
               />
-            </div>
-            <div style={{ marginTop: '20px', display: 'flex', gap: '12px', justifyContent: 'flex-end' }}>
-              <button type="button" className="btn-cancel" onClick={onClose} disabled={loading}>
-                Скасувати
-              </button>
               <button type="submit" className="btn-join" disabled={loading || !newId}>
-                {loading ? 'Приєднання...' : 'Приєднатися'}
+                Приєднатися
               </button>
             </div>
           </form>
+
+          <hr style={{ margin: '24px 0', border: '0', borderTop: '1px solid #edf2f7' }} />
+
+          <div className="monobank-integration">
+            <h4 style={{ margin: '0 0 12px 0', color: '#2d3748' }}>Інтеграція з Monobank</h4>
+            <p className="hint" style={{ marginBottom: '16px' }}>
+              Введіть ваш <a href="https://api.monobank.ua/" target="_blank" rel="noreferrer" style={{ color: '#667eea', fontWeight: 600 }}>Personal Token</a>, щоб автоматично завантажувати витрати.
+            </p>
+            <div className="input-group" style={{ display: 'flex', gap: '10px' }}>
+              <input 
+                type="password" 
+                placeholder="Введіть Monobank Token..." 
+                value={tempToken}
+                onChange={e => setTempToken(e.target.value)}
+                className="modal-input"
+              />
+              <button 
+                type="button" 
+                className="btn-join" 
+                onClick={handleSaveToken}
+                disabled={loading || tempToken === monobankToken}
+              >
+                Зберегти
+              </button>
+            </div>
+            {monobankToken && <p className="hint" style={{ color: '#48bb78', marginTop: '8px' }}>✓ Токен підключено</p>}
+          </div>
+
+          <div style={{ marginTop: '24px', display: 'flex', gap: '12px', justifyContent: 'flex-end' }}>
+            <button type="button" className="btn-cancel" onClick={onClose} disabled={loading}>
+              Закрити
+            </button>
+          </div>
         </div>
       </div>
       
@@ -191,6 +233,7 @@ export const FamilySettings: React.FC<FamilySettingsProps> = ({ onClose }) => {
           font-weight: 600;
           cursor: pointer;
           transition: background 0.2s;
+          white-space: nowrap;
         }
         .btn-join:hover:not(:disabled) {
           background: #5a67d8;

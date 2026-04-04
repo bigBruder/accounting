@@ -7,11 +7,13 @@ import { auth, db } from '../services/firebase';
 interface AuthContextType {
   user: User | null;
   familyId: string | null;
+  monobankToken: string | null;
   loading: boolean;
   login: (email: string, pass: string) => Promise<void>;
   register: (email: string, pass: string) => Promise<void>;
   logout: () => Promise<void>;
   joinFamily: (newFamilyId: string) => Promise<void>;
+  updateMonobankToken: (token: string) => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType>({} as AuthContextType);
@@ -21,6 +23,7 @@ export const useAuth = () => useContext(AuthContext);
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [user, setUser] = useState<User | null>(null);
   const [familyId, setFamilyId] = useState<string | null>(null);
+  const [monobankToken, setMonobankToken] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -28,24 +31,27 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       setUser(currentUser);
       
       if (currentUser) {
-        // Fetch or create user profile in Firestore
         const userDocRef = doc(db, 'users', currentUser.uid);
         const userDoc = await getDoc(userDocRef);
         
         if (userDoc.exists()) {
-          setFamilyId(userDoc.data().familyId);
+          const data = userDoc.data();
+          setFamilyId(data.familyId);
+          setMonobankToken(data.monobankToken || null);
         } else {
-          // New user: default familyId is their own uid
           const newFamilyId = currentUser.uid;
           await setDoc(userDocRef, {
             email: currentUser.email,
             familyId: newFamilyId,
-            createdAt: Date.now()
+            createdAt: Date.now(),
+            monobankToken: ''
           });
           setFamilyId(newFamilyId);
+          setMonobankToken('');
         }
       } else {
         setFamilyId(null);
+        setMonobankToken(null);
       }
       
       setLoading(false);
@@ -64,8 +70,18 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     setFamilyId(newFamilyId);
   };
 
+  const updateMonobankToken = async (token: string) => {
+    if (!user) return;
+    const userDocRef = doc(db, 'users', user.uid);
+    await updateDoc(userDocRef, { monobankToken: token });
+    setMonobankToken(token);
+  };
+
   return (
-    <AuthContext.Provider value={{ user, familyId, loading, login, register, logout, joinFamily }}>
+    <AuthContext.Provider value={{ 
+      user, familyId, monobankToken, loading, 
+      login, register, logout, joinFamily, updateMonobankToken 
+    }}>
       {!loading && children}
     </AuthContext.Provider>
   );

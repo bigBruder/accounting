@@ -8,6 +8,7 @@ export interface Transaction {
   description: string;
   date: string; // ISO date string
   createdAt: number;
+  externalId?: string; // ID from external source (like Monobank)
 }
 
 export interface TransactionFormData {

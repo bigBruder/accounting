@@ -3,13 +3,16 @@ import { db } from './firebase';
 import type { Transaction, Category } from '../models/types';
 import { DEFAULT_CATEGORIES } from '../models/types';
 
-export const addTransaction = async (familyId: string, data: Omit<Transaction, 'id' | 'createdAt'>): Promise<void> => {
+export const addTransaction = async (
+  familyId: string, 
+  data: Omit<Transaction, 'id' | 'createdAt'> & { id?: string; createdAt?: number }
+): Promise<void> => {
   const colRef = collection(db, `families/${familyId}/transactions`);
-  const docRef = doc(colRef);
+  const docRef = data.id ? doc(colRef, data.id) : doc(colRef);
   await setDoc(docRef, {
     ...data,
-    id: docRef.id,
-    createdAt: Date.now(),
+    id: data.id || docRef.id,
+    createdAt: data.createdAt || Date.now(),
   });
 };
 
