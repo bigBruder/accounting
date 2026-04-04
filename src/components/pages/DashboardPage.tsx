@@ -74,15 +74,13 @@ export const DashboardPage: React.FC = () => {
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
           <h1 className="page-title">{t('dashboard.title')}</h1>
           <button 
-            className={`btn ${!monobankToken ? 'btn-secondary' : cooldown > 0 ? 'btn-ghost' : 'btn-primary'}`}
+            className={`mono-sync-btn ${syncLoading ? 'mono-sync-btn--loading' : ''} ${!monobankToken ? 'mono-btn-connect' : ''}`}
             onClick={handleSync}
             disabled={syncLoading || cooldown > 0}
-            style={{ display: 'flex', alignItems: 'center', gap: '8px' }}
+            title={monobankToken ? 'Синхронізувати з Monobank' : 'Підключити Monobank'}
           >
-            {syncLoading ? '🔄 Синхронізація...' : 
-             !monobankToken ? '🏦 Підключити Monobank' :
-             cooldown > 0 ? `⏳ Зачекайте ${cooldown}с` : 
-             '🏦 Синхронізувати з Monobank'}
+            <span className="mono-sync-btn__icon">🐈‍⬛</span>
+            <span>{syncLoading ? 'Оновлення...' : !monobankToken ? 'Connect Mono' : cooldown > 0 ? `Зачекайте ${cooldown}с` : 'Mono Sync'}</span>
           </button>
         </div>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 'var(--space-4)' }}>

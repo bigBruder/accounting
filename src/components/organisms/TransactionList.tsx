@@ -24,7 +24,7 @@ export const TransactionList: React.FC<TransactionListProps> = ({
   onFilterChange
 }) => {
   const { t } = useTranslation();
-  const [filterType, setFilterType] = useState('all');
+  const [activeTab, setActiveTab] = useState<'all' | 'expense' | 'income'>('all');
   const [search, setSearch] = useState('');
   const [dateFrom, setDateFrom] = useState('');
   const [dateTo, setDateTo] = useState('');
@@ -33,44 +33,61 @@ export const TransactionList: React.FC<TransactionListProps> = ({
   const { categories } = useData();
 
   const handleFilterChange = (updates: Partial<{ type: string; search: string; dateFrom: string; dateTo: string }>) => {
-    const newFilters = {
-      type: updates.type ?? filterType,
+    onFilterChange?.({
+      type: updates.type || activeTab,
       search: updates.search ?? search,
       dateFrom: updates.dateFrom ?? dateFrom,
       dateTo: updates.dateTo ?? dateTo,
-    };
+    });
     
-    if (updates.type !== undefined) setFilterType(updates.type);
     if (updates.search !== undefined) setSearch(updates.search);
     if (updates.dateFrom !== undefined) setDateFrom(updates.dateFrom);
     if (updates.dateTo !== undefined) setDateTo(updates.dateTo);
-    
-    onFilterChange?.(newFilters);
   };
+
+  const handleTabChange = (type: 'all' | 'expense' | 'income') => {
+    setActiveTab(type);
+    onFilterChange?.({ type, search, dateFrom, dateTo });
+  };
+
+  const filteredTransactions = transactions.filter(tx => {
+    return activeTab === 'all' || tx.type === activeTab;
+  });
 
   return (
     <div className="transaction-list">
-      <div className="transaction-list__header">
+      <div className="transaction-list__header" style={{ flexDirection: 'column', alignItems: 'flex-start', gap: 'var(--space-4)' }}>
         <h3 className="section-title" style={{ marginBottom: 0 }}>{displayTitle}</h3>
+        
+        <div className="tab-switcher" style={{ width: '100%' }}>
+          <div 
+            className={`tab-item ${activeTab === 'all' ? 'tab-item--active' : ''}`}
+            onClick={() => handleTabChange('all')}
+          >
+            {t('common.all', { defaultValue: 'Всі' })}
+          </div>
+          <div 
+            className={`tab-item ${activeTab === 'expense' ? 'tab-item--active tab-item--expense' : ''}`}
+            onClick={() => handleTabChange('expense')}
+          >
+            {t('common.expenses')}
+          </div>
+          <div 
+            className={`tab-item ${activeTab === 'income' ? 'tab-item--active tab-item--income' : ''}`}
+            onClick={() => handleTabChange('income')}
+          >
+            {t('common.income')}
+          </div>
+        </div>
       </div>
       
       {showFilters && (
         <div className="transaction-list__filters">
-          <select 
-            className="select" 
-            style={{ width: 'auto', minWidth: '130px' }}
-            value={filterType}
-            onChange={(e) => handleFilterChange({ type: e.target.value })}
-          >
-            <option value="all">{t('common.allTypes', { defaultValue: 'Всі типи' })}</option>
-            <option value="income">{t('common.income')}</option>
-            <option value="expense">{t('common.expenses')}</option>
-          </select>
           <input 
             className="input" 
             type="text" 
             placeholder={t('common.search', { defaultValue: 'Пошук...' })} 
-            style={{ width: 'auto', minWidth: '180px' }}
+            style={{ flex: 1, minWidth: '180px' }}
             value={search}
             onChange={(e) => handleFilterChange({ search: e.target.value })}
           />
@@ -83,14 +100,14 @@ export const TransactionList: React.FC<TransactionListProps> = ({
       )}
 
       <div className={`transaction-list__body ${compact ? 'transaction-list__body--compact' : ''}`}>
-        {transactions.length === 0 ? (
+        {filteredTransactions.length === 0 ? (
           <EmptyState 
             icon="📭" 
             title={t('common.noTransactions', { defaultValue: 'Немає транзакцій' })} 
-            description={t('common.noTransactionsDesc', { defaultValue: 'Додайте першу транзакцію, щоб почати відстежувати бюджет' })}
+            description={t('common.noTransactionsDesc', { defaultValue: 'Тут поки нічого немає за вашим запитом.' })}
           />
         ) : (
-          transactions.map((transaction) => (
+          filteredTransactions.map((transaction) => (
             <TransactionItem 
               key={transaction.id}
               transaction={transaction}
