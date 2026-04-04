@@ -24,7 +24,7 @@ export const TransactionList: React.FC<TransactionListProps> = ({
   onFilterChange
 }) => {
   const { t } = useTranslation();
-  const [activeTab, setActiveTab] = useState<'all' | 'expense' | 'income'>('all');
+  const [activeTab, setActiveTab] = useState<'all' | 'expense' | 'income' | 'transfer'>('all');
   const [search, setSearch] = useState('');
   const [memberFilter, setMemberFilter] = useState('all');
   const [dateFrom, setDateFrom] = useState('');
@@ -57,7 +57,7 @@ export const TransactionList: React.FC<TransactionListProps> = ({
     if (updates.dateTo !== undefined) setDateTo(updates.dateTo);
   };
 
-  const handleTabChange = (type: 'all' | 'expense' | 'income') => {
+  const handleTabChange = (type: 'all' | 'expense' | 'income' | 'transfer') => {
     setActiveTab(type);
     onFilterChange?.({ type, search, dateFrom, dateTo });
   };
@@ -93,6 +93,12 @@ export const TransactionList: React.FC<TransactionListProps> = ({
             onClick={() => handleTabChange('income')}
           >
             {t('common.income')}
+          </div>
+          <div 
+            className={`tab-item ${activeTab === 'transfer' ? 'tab-item--active tab-item--transfer' : ''}`}
+            onClick={() => handleTabChange('transfer')}
+          >
+            🔄 {t('common.transfers', { defaultValue: 'Перекази' })}
           </div>
         </div>
       </div>

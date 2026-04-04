@@ -11,16 +11,20 @@ interface TransactionItemProps {
 
 export const TransactionItem: React.FC<TransactionItemProps> = ({ transaction, category, onDelete }) => {
   const isExpense = transaction.type === 'expense';
+  const isTransfer = transaction.type === 'transfer';
+  
+  const amountPrefix = isTransfer ? '↔' : (isExpense ? '−' : '+');
+  const amountClass = isTransfer ? 'transfer' : transaction.type;
   
   return (
-    <div className="transaction-item animate-slide-in">
+    <div className={`transaction-item animate-slide-in ${isTransfer ? 'transaction-item--transfer' : ''}`}>
       <div className="transaction-item__icon" style={{ background: `${category?.color || '#ccc'}20`, color: category?.color || '#ccc' }}>
-        {category?.icon || '💰'}
+        {isTransfer ? '🔄' : (category?.icon || '💰')}
       </div>
       <div className="transaction-item__info">
         <div className="transaction-item__title">{transaction.description}</div>
         <div className="transaction-item__meta">
-          <span className="transaction-item__category">{category?.name || 'Unknown'}</span>
+          <span className="transaction-item__category">{isTransfer ? 'Переказ' : (category?.name || 'Unknown')}</span>
           <span className="transaction-item__date">{formatDate(transaction.date)}</span>
           {transaction.createdByName && (
             <span className="transaction-item__author" title={`Додав: ${transaction.createdByName}`}>
@@ -29,8 +33,8 @@ export const TransactionItem: React.FC<TransactionItemProps> = ({ transaction, c
           )}
         </div>
       </div>
-      <div className={`transaction-item__amount transaction-item__amount--${transaction.type}`}>
-        {isExpense ? '−' : '+'}{formatAmount(transaction.amount)}
+      <div className={`transaction-item__amount transaction-item__amount--${amountClass}`}>
+        {amountPrefix} {formatAmount(transaction.amount)}
       </div>
       {onDelete && (
         <button 

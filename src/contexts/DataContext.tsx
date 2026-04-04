@@ -72,7 +72,6 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
 
     try {
-      // Gather all tokens to sync
       interface TokenInfo {
         token: string;
         ownerUid: string;
@@ -82,14 +81,12 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
       const tokensToSync: TokenInfo[] = [];
 
       if (manualToken) {
-        // Manual token override — only sync this one for the current user
         tokensToSync.push({
           token: manualToken,
           ownerUid: user.uid,
           ownerName: user.displayName || user.email || 'Невідомий',
         });
       } else {
-        // Fetch all family members and collect their tokens
         const members = await getFamilyMembers(familyId);
         for (const member of members) {
           if (member.monobankToken) {
@@ -114,26 +111,39 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
       const now = Math.floor(Date.now() / 1000);
       const thirtyDaysAgo = now - (30 * 24 * 60 * 60);
-      let totalSynced = 0;
+
+      // Phase 1: Collect all new transactions from all members
+      interface PendingTransaction {
+        type: 'income' | 'expense';
+        amount: number;
+        categoryId: string;
+        description: string;
+        date: string;
+        createdAt: number;
+        externalId: string;
+        createdBy: string;
+        createdByName: string;
+        rawAmount: number; // original signed amount in kopecks for transfer matching
+      }
+
+      const pendingTransactions: PendingTransaction[] = [];
 
       for (const { token, ownerUid, ownerName } of tokensToSync) {
         try {
           const clientInfo = await MonobankService.getClientInfo(token);
-          
-          const syncPromises: Promise<any>[] = [];
 
           for (const account of clientInfo.accounts) {
             const monoTxs = await MonobankService.getStatement(token, account.id, thirtyDaysAgo);
 
             for (const tx of monoTxs) {
               if (existingExternalIds.has(tx.id)) continue;
-              existingExternalIds.add(tx.id); // prevent duplicates within this sync batch
+              existingExternalIds.add(tx.id);
 
               const categoryId = MonobankService.mapToCategoryId(tx.mcc, tx.description);
               const category = categories.find(c => c.id === categoryId) ||
                                categories.find(c => c.id === 'other-expense');
 
-              syncPromises.push(addTransaction(familyId, {
+              pendingTransactions.push({
                 type: tx.amount > 0 ? 'income' : 'expense',
                 amount: Math.abs(tx.amount / 100),
                 categoryId: category?.id || 'other-expense',
@@ -143,23 +153,70 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
                 externalId: tx.id,
                 createdBy: ownerUid,
                 createdByName: clientInfo.name || ownerName,
-              }));
+                rawAmount: tx.amount,
+              });
             }
           }
 
-          if (syncPromises.length > 0) {
-            await Promise.all(syncPromises);
-            totalSynced += syncPromises.length;
-          }
-
-          console.log(`Synced ${syncPromises.length} transactions for ${ownerName}`);
+          console.log(`Fetched transactions for ${ownerName}`);
         } catch (memberError) {
-          console.error(`Failed to sync Monobank for ${ownerName}:`, memberError);
-          // Continue syncing other members even if one fails
+          console.error(`Failed to fetch Monobank for ${ownerName}:`, memberError);
         }
       }
 
-      console.log(`Total synced: ${totalSynced} transactions from ${tokensToSync.length} member(s).`);
+      // Phase 2: Detect internal family transfers
+      // A transfer pair = one member has -X and another has +X within 5 minutes
+      const matched = new Set<number>();
+      const TIME_THRESHOLD = 5 * 60 * 1000; // 5 minutes in ms
+
+      for (let i = 0; i < pendingTransactions.length; i++) {
+        if (matched.has(i)) continue;
+        const txA = pendingTransactions[i];
+
+        for (let j = i + 1; j < pendingTransactions.length; j++) {
+          if (matched.has(j)) continue;
+          const txB = pendingTransactions[j];
+
+          // Different owners, same absolute amount, opposite signs, close in time
+          if (
+            txA.createdBy !== txB.createdBy &&
+            Math.abs(txA.amount - txB.amount) < 0.01 &&
+            ((txA.rawAmount > 0 && txB.rawAmount < 0) || (txA.rawAmount < 0 && txB.rawAmount > 0)) &&
+            Math.abs(txA.createdAt - txB.createdAt) <= TIME_THRESHOLD
+          ) {
+            matched.add(i);
+            matched.add(j);
+            break;
+          }
+        }
+      }
+
+      // Phase 3: Write all transactions, marking matched ones as 'transfer'
+      const syncPromises: Promise<any>[] = [];
+
+      for (let i = 0; i < pendingTransactions.length; i++) {
+        const tx = pendingTransactions[i];
+        const isTransfer = matched.has(i);
+
+        syncPromises.push(addTransaction(familyId, {
+          type: isTransfer ? 'transfer' : tx.type,
+          amount: tx.amount,
+          categoryId: isTransfer ? 'transfer' : tx.categoryId,
+          description: tx.description,
+          date: tx.date,
+          createdAt: tx.createdAt,
+          externalId: tx.externalId,
+          createdBy: tx.createdBy,
+          createdByName: tx.createdByName,
+        }));
+      }
+
+      if (syncPromises.length > 0) {
+        await Promise.all(syncPromises);
+      }
+
+      const transferCount = matched.size;
+      console.log(`Total synced: ${syncPromises.length} transactions (${transferCount / 2} transfer pairs detected).`);
     } catch (error) {
       console.error('Failed to sync Monobank:', error);
       throw error;

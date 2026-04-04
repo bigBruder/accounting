@@ -516,3 +516,7 @@
 .tab-item--active.tab-item--income {
   color: var(--color-income);
 }
+
+.tab-item--active.tab-item--transfer {
+  color: #60a5fa;
+}

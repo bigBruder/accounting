@@ -161,6 +161,12 @@
 
 .transaction-item__amount--income { color: var(--color-income); }
 .transaction-item__amount--expense { color: var(--color-expense); }
+.transaction-item__amount--transfer { color: #60a5fa; }
+
+.transaction-item--transfer {
+  opacity: 0.7;
+  border-left: 3px solid #60a5fa;
+}
 
 .transaction-item__actions {
   display: flex;

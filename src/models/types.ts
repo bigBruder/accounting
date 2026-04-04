@@ -1,4 +1,4 @@
-export type TransactionType = 'income' | 'expense';
+export type TransactionType = 'income' | 'expense' | 'transfer';
 
 export interface Transaction {
   id: string;
@@ -67,4 +67,5 @@ export const DEFAULT_CATEGORIES: Category[] = [
   { id: 'utilities', name: 'Комунальні', icon: '💡', color: '#f97316', type: 'expense' },
   { id: 'education', name: 'Освіта', icon: '📚', color: '#818cf8', type: 'expense' },
   { id: 'other-expense', name: 'Інше', icon: '📤', color: '#94a3b8', type: 'expense' },
+  { id: 'transfer', name: 'Переказ', icon: '🔄', color: '#60a5fa', type: 'transfer' },
 ];
