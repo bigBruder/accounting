@@ -96,16 +96,21 @@ export const LoginPage: React.FC = () => {
       <style>{`
         .login-page {
           min-height: 100vh;
+          width: 100%;
+          display: flex;
+          flex-direction: column;
           background: #f8fafc;
           font-family: 'Inter', system-ui, -apple-system, sans-serif;
         }
         .login-split {
           display: flex;
-          min-height: 100vh;
+          flex: 1;
+          width: 100%;
         }
         .login-left {
           flex: 1;
           display: flex;
+          flex-direction: column;
           align-items: center;
           justify-content: center;
           padding: 40px;
@@ -113,7 +118,7 @@ export const LoginPage: React.FC = () => {
           z-index: 2;
         }
         .login-right {
-          flex: 1.2;
+          flex: 1.5;
           background-size: cover;
           background-position: center;
           position: relative;
@@ -136,7 +141,7 @@ export const LoginPage: React.FC = () => {
           backdrop-filter: blur(10px);
           padding: 40px;
           border-radius: 24px;
-          box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+          box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.3);
         }
         .login-header {
           text-align: center;
@@ -144,7 +149,7 @@ export const LoginPage: React.FC = () => {
         }
         .login-logo {
           font-size: 3rem;
-          margin-bottom: 16px;
+          margin-bottom: 12px;
         }
         .login-title {
           font-size: 1.875rem;
@@ -161,12 +166,12 @@ export const LoginPage: React.FC = () => {
         .login-form {
           display: flex;
           flex-direction: column;
-          gap: 20px;
+          gap: 16px;
         }
         .form-group {
           display: flex;
           flex-direction: column;
-          gap: 8px;
+          gap: 6px;
         }
         .form-label {
           font-size: 0.875rem;
@@ -188,7 +193,7 @@ export const LoginPage: React.FC = () => {
           box-shadow: 0 0 0 4px rgba(102, 126, 234, 0.1);
         }
         .btn-login {
-          margin-top: 10px;
+          margin-top: 8px;
           background: #667eea;
           color: white;
           border: none;
@@ -197,10 +202,11 @@ export const LoginPage: React.FC = () => {
           font-size: 1rem;
           font-weight: 700;
           cursor: pointer;
-          transition: transform 0.1s, background 0.2s;
+          transition: all 0.2s;
         }
         .btn-login:hover {
           background: #5a67d8;
+          box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
         }
         .btn-login:active {
           transform: scale(0.98);
@@ -249,7 +255,7 @@ export const LoginPage: React.FC = () => {
           border-color: #cbd5e0;
         }
         .animate-fade-in {
-          animation: fadeIn 0.5s ease-out;
+          animation: fadeIn 0.5s ease-out forwards;
         }
         @keyframes fadeIn {
           from { opacity: 0; transform: translateY(10px); }
