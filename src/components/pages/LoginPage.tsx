@@ -1,6 +1,8 @@
 import React, { useState } from 'react';
 import { useAuth } from '../../contexts/AuthContext';
 
+import mathMeme from '../../assets/math-meme.png';
+
 export const LoginPage: React.FC = () => {
   const [isLogin, setIsLogin] = useState(true);
   const [email, setEmail] = useState('');
@@ -24,84 +26,113 @@ export const LoginPage: React.FC = () => {
 
   return (
     <div className="login-page">
-      <div className="login-container animate-fade-in">
-        <div className="login-card">
-          <div className="login-header">
-            <div className="login-logo">💰</div>
-            <h1 className="login-title">
-              {isLogin ? 'З поверненням' : 'Створити акаунт'}
-            </h1>
-            <p className="login-subtitle">
-              {isLogin ? 'Увійдіть, щоб керувати сімейним бюджетом' : 'Приєднуйтесь до розумного планування витрат'}
-            </p>
-          </div>
-
-          <form onSubmit={handleSubmit} className="login-form">
-            <div className="form-group">
-              <label className="form-label">Електронна пошта</label>
-              <input 
-                type="email" 
-                className="form-input" 
-                placeholder="name@example.com"
-                value={email} 
-                onChange={(e) => setEmail(e.target.value)} 
-                required 
-              />
+      <div className="login-split">
+        <div className="login-left animate-fade-in">
+          <div className="login-card">
+            <div className="login-header">
+              <div className="login-logo">💰</div>
+              <h1 className="login-title">
+                {isLogin ? 'З поверненням' : 'Створити акаунт'}
+              </h1>
+              <p className="login-subtitle">
+                {isLogin ? 'Увійдіть, щоб керувати сімейним бюджетом' : 'Приєднуйтесь до розумного планування витрат'}
+              </p>
             </div>
-            <div className="form-group">
-              <label className="form-label">Пароль</label>
-              <input 
-                type="password" 
-                className="form-input" 
-                placeholder="••••••••"
-                value={password} 
-                onChange={(e) => setPassword(e.target.value)} 
-                required 
-              />
-            </div>
-            
-            {error && <div className="error-message">{error}</div>}
-            
-            <button type="submit" className="btn-login">
-              {isLogin ? 'Увійти' : 'Зареєструватися'}
-            </button>
-          </form>
 
-          <div className="login-footer">
-            <button 
-              className="btn-toggle"
-              onClick={() => setIsLogin(!isLogin)} 
-            >
-              {isLogin ? 'Ще немає акаунта? Створити' : 'Вже є акаунт? Увійти'}
-            </button>
-          </div>
-          
-          {user && (
-            <div style={{ marginTop: '20px', borderTop: '1px solid #eee', paddingTop: '15px' }}>
-              <button onClick={logout} className="btn-logout">
-                Вийти з системи
+            <form onSubmit={handleSubmit} className="login-form">
+              <div className="form-group">
+                <label className="form-label">Електронна пошта</label>
+                <input 
+                  type="email" 
+                  className="form-input" 
+                  placeholder="name@example.com"
+                  value={email} 
+                  onChange={(e) => setEmail(e.target.value)} 
+                  required 
+                />
+              </div>
+              <div className="form-group">
+                <label className="form-label">Пароль</label>
+                <input 
+                  type="password" 
+                  className="form-input" 
+                  placeholder="••••••••"
+                  value={password} 
+                  onChange={(e) => setPassword(e.target.value)} 
+                  required 
+                />
+              </div>
+              
+              {error && <div className="error-message">{error}</div>}
+              
+              <button type="submit" className="btn-login">
+                {isLogin ? 'Увійти' : 'Зареєструватися'}
+              </button>
+            </form>
+
+            <div className="login-footer">
+              <button 
+                className="btn-toggle"
+                onClick={() => setIsLogin(!isLogin)} 
+              >
+                {isLogin ? 'Ще немає акаунта? Створити' : 'Вже є акаунт? Увійти'}
               </button>
             </div>
-          )}
+            
+            {user && (
+              <div style={{ marginTop: '20px', borderTop: '1px solid #eee', paddingTop: '15px' }}>
+                <button onClick={logout} className="btn-logout">
+                  Вийти з системи
+                </button>
+              </div>
+            )}
+          </div>
+        </div>
+        <div className="login-right" style={{ backgroundImage: `url(${mathMeme})` }}>
+          <div className="overlay-gradient"></div>
         </div>
       </div>
 
       <style>{`
         .login-page {
           min-height: 100vh;
+          background: #f8fafc;
+          font-family: 'Inter', system-ui, -apple-system, sans-serif;
+        }
+        .login-split {
+          display: flex;
+          min-height: 100vh;
+        }
+        .login-left {
+          flex: 1;
           display: flex;
           align-items: center;
           justify-content: center;
+          padding: 40px;
           background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-          padding: 20px;
-          font-family: 'Inter', system-ui, -apple-system, sans-serif;
+          z-index: 2;
         }
-        .login-container {
-          width: 100%;
-          max-width: 440px;
+        .login-right {
+          flex: 1.2;
+          background-size: cover;
+          background-position: center;
+          position: relative;
+          display: none;
+        }
+        @media (min-width: 1024px) {
+          .login-right {
+            display: block;
+          }
+        }
+        .overlay-gradient {
+          position: absolute;
+          inset: 0;
+          background: linear-gradient(to right, rgba(118, 75, 162, 0.4), transparent);
         }
         .login-card {
-          background: rgba(255, 255, 255, 0.95);
+          width: 100%;
+          max-width: 440px;
+          background: rgba(255, 255, 255, 0.98);
           backdrop-filter: blur(10px);
           padding: 40px;
           border-radius: 24px;
@@ -143,7 +174,7 @@ export const LoginPage: React.FC = () => {
           color: #4a5568;
         }
         .form-input {
-          padding: 12px 16px;
+          padding: 12px 14px;
           border: 1px solid #e2e8f0;
           border-radius: 12px;
           font-size: 1rem;
