@@ -26,13 +26,21 @@ export const TransactionList: React.FC<TransactionListProps> = ({
   const { t } = useTranslation();
   const [activeTab, setActiveTab] = useState<'all' | 'expense' | 'income'>('all');
   const [search, setSearch] = useState('');
+  const [memberFilter, setMemberFilter] = useState('all');
   const [dateFrom, setDateFrom] = useState('');
   const [dateTo, setDateTo] = useState('');
 
   const displayTitle = title || t('common.transactions');
   const { categories } = useData();
 
-  const handleFilterChange = (updates: Partial<{ type: string; search: string; dateFrom: string; dateTo: string }>) => {
+  // Extract unique members from transactions for the filter
+  const members = Array.from(new Set(transactions.map(tx => tx.createdBy).filter(Boolean)))
+    .map(uid => {
+      const tx = transactions.find(t => t.createdBy === uid);
+      return { uid, name: tx?.createdByName || 'Unknown' };
+    });
+
+  const handleFilterChange = (updates: Partial<{ type: string; search: string; member: string; dateFrom: string; dateTo: string }>) => {
     onFilterChange?.({
       type: updates.type || activeTab,
       search: updates.search ?? search,
@@ -41,6 +49,7 @@ export const TransactionList: React.FC<TransactionListProps> = ({
     });
     
     if (updates.search !== undefined) setSearch(updates.search);
+    if (updates.member !== undefined) setMemberFilter(updates.member);
     if (updates.dateFrom !== undefined) setDateFrom(updates.dateFrom);
     if (updates.dateTo !== undefined) setDateTo(updates.dateTo);
   };
@@ -51,7 +60,11 @@ export const TransactionList: React.FC<TransactionListProps> = ({
   };
 
   const filteredTransactions = transactions.filter(tx => {
-    return activeTab === 'all' || tx.type === activeTab;
+    const matchesTab = activeTab === 'all' || tx.type === activeTab;
+    const matchesMember = memberFilter === 'all' || tx.createdBy === memberFilter;
+    const matchesSearch = !search || tx.description.toLowerCase().includes(search.toLowerCase());
+    
+    return matchesTab && matchesMember && matchesSearch;
   });
 
   return (
@@ -87,10 +100,23 @@ export const TransactionList: React.FC<TransactionListProps> = ({
             className="input" 
             type="text" 
             placeholder={t('common.search', { defaultValue: 'Пошук...' })} 
-            style={{ flex: 1, minWidth: '180px' }}
+            style={{ flex: 1, minWidth: '150px' }}
             value={search}
             onChange={(e) => handleFilterChange({ search: e.target.value })}
           />
+          {members.length > 1 && (
+            <select 
+              className="select" 
+              style={{ width: 'auto', minWidth: '130px' }}
+              value={memberFilter}
+              onChange={(e) => handleFilterChange({ member: e.target.value })}
+            >
+              <option value="all">{t('common.allMembers', { defaultValue: 'Всі учасники' })}</option>
+              {members.map(m => (
+                <option key={m.uid} value={m.uid}>{m.name}</option>
+              ))}
+            </select>
+          )}
           <DateRangePicker 
             dateFrom={dateFrom}
             dateTo={dateTo}

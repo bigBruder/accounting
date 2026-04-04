@@ -34,6 +34,7 @@ export interface Category {
 export interface FilterOptions {
   type?: TransactionType | 'all';
   categoryId?: string;
+  createdBy?: string;
   dateFrom?: string;
   dateTo?: string;
   search?: string;

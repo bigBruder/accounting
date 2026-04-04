@@ -10,23 +10,26 @@ export const Header: React.FC = () => {
   return (
     <header className="header">
       <div className="header__container">
-        <div className="header__left"></div>
-        <div className="header__right" style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
-          <button 
-            onClick={() => setIsFamilyOpen(true)} 
-            className="btn btn--secondary" 
-            style={{ fontSize: '0.875rem', padding: '0.25rem 0.6rem' }}
+        <div className="header__left">
+          <button
+            onClick={() => setIsFamilyOpen(true)}
+            className="btn btn--secondary"
+            style={{ fontSize: '0.875rem', padding: '0.4rem 1rem' }}
           >
-            Сім'я
+            👨‍👩‍👧‍👦 Сім'я
           </button>
-          <button 
-            onClick={logout} 
-            className="btn" 
-            style={{ fontSize: '0.875rem', padding: '0.25rem 0.6rem' }}
-          >
-            Logout
-          </button>
-          <LanguageSwitcher />
+        </div>
+        <div className="header__right">
+          <div style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
+            <LanguageSwitcher />
+            <button
+              onClick={logout}
+              className="btn"
+              style={{ fontSize: '0.875rem', padding: '0.4rem 1rem', color: 'white', background: 'rgba(255,255,255,0.05)' }}
+            >
+              Вийти
+            </button>
+          </div>
         </div>
       </div>
       {isFamilyOpen && <FamilySettings onClose={() => setIsFamilyOpen(false)} />}
