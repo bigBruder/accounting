@@ -109,6 +109,7 @@
 .transaction-item__info {
   flex: 1;
   min-width: 0;
+  overflow: hidden;
 }
 
 .transaction-item__desc {
@@ -141,6 +142,10 @@
   font-size: var(--fs-xs);
   color: var(--text-muted);
   margin-top: 2px;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 2px;
 }
 
 .transaction-item__amount {
@@ -149,6 +154,9 @@
   font-weight: var(--fw-semibold);
   font-variant-numeric: tabular-nums;
   flex-shrink: 0;
+  min-width: 100px;
+  text-align: right;
+  white-space: nowrap;
 }
 
 .transaction-item__amount--income { color: var(--color-income); }
@@ -263,6 +271,49 @@
   .date-range-picker {
     gap: var(--space-2);
   }
+}
+
+/* ===== MEMBER CHIPS ===== */
+.member-chips {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+  align-items: center;
+}
+
+.member-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 6px 14px;
+  border-radius: var(--radius-full);
+  border: 1px solid var(--border-color);
+  background: transparent;
+  color: var(--text-secondary);
+  font-size: var(--fs-xs);
+  font-weight: var(--fw-medium);
+  cursor: pointer;
+  transition: all var(--transition-fast);
+  white-space: nowrap;
+}
+
+.member-chip:hover {
+  background: rgba(255, 255, 255, 0.05);
+  border-color: var(--border-focus);
+  color: var(--text-primary);
+}
+
+.member-chip--active {
+  background: var(--accent-primary);
+  border-color: var(--accent-primary);
+  color: white;
+  box-shadow: var(--shadow-sm);
+}
+
+.member-chip--active:hover {
+  background: var(--accent-hover);
+  border-color: var(--accent-hover);
+  color: white;
 }
 
 /* ===== SEGMENTED CONTROL ===== */

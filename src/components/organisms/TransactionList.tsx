@@ -37,7 +37,10 @@ export const TransactionList: React.FC<TransactionListProps> = ({
   const members = Array.from(new Set(transactions.map(tx => tx.createdBy).filter(Boolean)))
     .map(uid => {
       const tx = transactions.find(t => t.createdBy === uid);
-      return { uid, name: tx?.createdByName || 'Unknown' };
+      const rawName = tx?.createdByName || 'Unknown';
+      // Extract a short readable name: use part before @ if it's an email
+      const displayName = rawName.includes('@') ? rawName.split('@')[0] : rawName;
+      return { uid, name: displayName };
     });
 
   const handleFilterChange = (updates: Partial<{ type: string; search: string; member: string; dateFrom: string; dateTo: string }>) => {
@@ -105,17 +108,23 @@ export const TransactionList: React.FC<TransactionListProps> = ({
             onChange={(e) => handleFilterChange({ search: e.target.value })}
           />
           {members.length > 1 && (
-            <select 
-              className="select" 
-              style={{ width: 'auto', minWidth: '130px' }}
-              value={memberFilter}
-              onChange={(e) => handleFilterChange({ member: e.target.value })}
-            >
-              <option value="all">{t('common.allMembers', { defaultValue: 'Всі учасники' })}</option>
+            <div className="member-chips">
+              <button
+                className={`member-chip ${memberFilter === 'all' ? 'member-chip--active' : ''}`}
+                onClick={() => handleFilterChange({ member: 'all' })}
+              >
+                {t('common.allMembers', { defaultValue: 'Всі' })}
+              </button>
               {members.map(m => (
-                <option key={m.uid} value={m.uid}>{m.name}</option>
+                <button
+                  key={m.uid}
+                  className={`member-chip ${memberFilter === m.uid ? 'member-chip--active' : ''}`}
+                  onClick={() => handleFilterChange({ member: m.uid })}
+                >
+                  👤 {m.name}
+                </button>
               ))}
-            </select>
+            </div>
           )}
           <DateRangePicker 
             dateFrom={dateFrom}
