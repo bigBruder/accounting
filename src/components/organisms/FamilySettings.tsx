@@ -144,10 +144,11 @@ export const FamilySettings: React.FC<FamilySettingsProps> = ({ onClose }) => {
           background: rgba(0, 0, 0, 0.6);
           backdrop-filter: blur(4px);
           display: flex;
-          align-items: center;
+          align-items: flex-start;
           justify-content: center;
           z-index: 9999;
-          padding: 20px;
+          padding: 40px 20px;
+          overflow-y: auto;
         }
         .family-settings-card {
           background: white;
