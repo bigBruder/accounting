@@ -56,6 +56,13 @@ export const DashboardPage: React.FC = () => {
     alert('Вітаємо! Ваш Monobank успішно підключено та синхронізовано.');
   };
 
+  const handleCategoryClick = (categoryId: string) => {
+    setFilters(prev => ({
+      ...prev,
+      categoryId: prev.categoryId === categoryId ? undefined : categoryId
+    }));
+  };
+
   const handleDelete = async (id: string) => {
     if (familyId) {
       await deleteTransaction(familyId, id);
@@ -101,13 +108,17 @@ export const DashboardPage: React.FC = () => {
         <div id="recent-transactions">
           <TransactionList 
             transactions={recentTransactions} 
-            title={t('dashboard.recentTransactions')} 
+            title={filters.categoryId ? `${t('dashboard.recentTransactions')} (${transactions.find(t => t.categoryId === filters.categoryId)?.description || '...' })` : t('dashboard.recentTransactions')} 
             compact={true}
             onDelete={handleDelete}
           />
         </div>
         <div id="category-breakdown">
-          <CategoryBreakdown filters={filters} />
+          <CategoryBreakdown 
+            filters={filters} 
+            activeCategoryId={filters.categoryId}
+            onCategoryClick={handleCategoryClick}
+          />
         </div>
       </div>
 

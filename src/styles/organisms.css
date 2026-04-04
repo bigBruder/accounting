@@ -250,11 +250,20 @@
   display: flex;
   align-items: center;
   gap: var(--space-4);
-  padding: var(--space-3) 0;
+  padding: var(--space-3) var(--space-4);
+  margin: 0 -16px;
+  border-radius: var(--radius-md);
+  transition: all var(--transition-fast);
+  border: 1px solid transparent;
 }
 
-.category-breakdown__item + .category-breakdown__item {
-  border-top: 1px solid var(--border-color);
+.category-breakdown__item:hover {
+  background: rgba(255, 255, 255, 0.05);
+}
+
+.category-breakdown__item--active {
+  background: rgba(139, 92, 246, 0.1);
+  border-color: rgba(139, 92, 246, 0.3);
 }
 
 .category-breakdown__icon {
