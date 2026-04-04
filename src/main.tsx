@@ -9,6 +9,10 @@ import './styles/organisms.css';
 
 import './i18n';
 import { App } from './App';
+import { registerSW } from 'virtual:pwa-register';
+
+// Register PWA service worker
+registerSW({ immediate: true });
 
 const appContainer = document.getElementById('app');
 if (appContainer) {
