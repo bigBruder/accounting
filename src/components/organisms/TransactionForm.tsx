@@ -78,14 +78,22 @@ export const TransactionForm: React.FC<TransactionFormProps> = ({ onSubmit, init
         <div className="grid-3" style={{ marginTop: 'var(--space-4)' }}>
           <div className="form-group">
             <label className="label">{t('common.type')}</label>
-            <select 
-              className="select" 
-              value={formData.type}
-              onChange={(e) => setFormData({ ...formData, type: e.target.value as 'income' | 'expense' })}
-            >
-              <option value="expense">{t('common.expenses')}</option>
-              <option value="income">{t('common.income')}</option>
-            </select>
+            <div className={`segmented-control segmented-control--${formData.type}`}>
+              <button
+                type="button"
+                className={`segmented-control__item ${formData.type === 'expense' ? 'segmented-control__item--active' : ''}`}
+                onClick={() => setFormData({ ...formData, type: 'expense' })}
+              >
+                💸 {t('common.expenses')}
+              </button>
+              <button
+                type="button"
+                className={`segmented-control__item ${formData.type === 'income' ? 'segmented-control__item--active' : ''}`}
+                onClick={() => setFormData({ ...formData, type: 'income' })}
+              >
+                💰 {t('common.income')}
+              </button>
+            </div>
           </div>
           <div className="form-group">
             <label className="label">{t('common.category')}</label>

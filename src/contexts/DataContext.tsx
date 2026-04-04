@@ -3,7 +3,7 @@ import { collection, onSnapshot } from 'firebase/firestore';
 import { db } from '../services/firebase';
 import { useAuth } from './AuthContext';
 import type { Transaction, Category } from '../models/types';
-import { initializeDefaultCategories, addTransaction } from '../services/firestore.service';
+import { initializeDefaultCategories, addTransaction, getFamilyMembers } from '../services/firestore.service';
 import { MonobankService } from '../services/monobank.service';
 
 interface DataContextType {
@@ -23,7 +23,7 @@ const DataContext = createContext<DataContextType>({
 export const useData = () => useContext(DataContext);
 
 export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const { user, familyId, monobankToken } = useAuth();
+  const { user, familyId } = useAuth();
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
   const [loading, setLoading] = useState(true);
@@ -67,15 +67,44 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
   }, [user, familyId]);
 
   const syncMonobank = async (manualToken?: string) => {
-    const activeToken = manualToken || monobankToken;
-    if (!user || !familyId || !activeToken) {
+    if (!user || !familyId) {
       throw new Error('Monobank token not found. Please add it in settings.');
     }
 
     try {
-      const clientInfo = await MonobankService.getClientInfo(activeToken);
-      const now = Math.floor(Date.now() / 1000);
-      const thirtyDaysAgo = now - (30 * 24 * 60 * 60);
+      // Gather all tokens to sync
+      interface TokenInfo {
+        token: string;
+        ownerUid: string;
+        ownerName: string;
+      }
+
+      const tokensToSync: TokenInfo[] = [];
+
+      if (manualToken) {
+        // Manual token override — only sync this one for the current user
+        tokensToSync.push({
+          token: manualToken,
+          ownerUid: user.uid,
+          ownerName: user.displayName || user.email || 'Невідомий',
+        });
+      } else {
+        // Fetch all family members and collect their tokens
+        const members = await getFamilyMembers(familyId);
+        for (const member of members) {
+          if (member.monobankToken) {
+            tokensToSync.push({
+              token: member.monobankToken,
+              ownerUid: member.uid,
+              ownerName: member.displayName || member.email || 'Невідомий',
+            });
+          }
+        }
+      }
+
+      if (tokensToSync.length === 0) {
+        throw new Error('Жоден член сім\'ї не підключив Monobank токен.');
+      }
 
       const existingExternalIds = new Set(
         transactions
@@ -83,37 +112,54 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
           .map(t => t.externalId)
       );
 
-      const syncPromises: Promise<any>[] = [];
-      
-      for (const account of clientInfo.accounts) {
-        // Fetch last 30 days of transactions for this account
-        const monoTxs = await MonobankService.getStatement(activeToken, account.id, thirtyDaysAgo);
-        
-        for (const tx of monoTxs) {
-          if (existingExternalIds.has(tx.id)) continue;
+      const now = Math.floor(Date.now() / 1000);
+      const thirtyDaysAgo = now - (30 * 24 * 60 * 60);
+      let totalSynced = 0;
 
-          const categoryId = MonobankService.mapToCategoryId(tx.mcc, tx.description);
-          const category = categories.find(c => c.id === categoryId) || 
-                           categories.find(c => c.id === 'other-expense');
+      for (const { token, ownerUid, ownerName } of tokensToSync) {
+        try {
+          const clientInfo = await MonobankService.getClientInfo(token);
+          
+          const syncPromises: Promise<any>[] = [];
 
-          syncPromises.push(addTransaction(familyId, {
-            type: tx.amount > 0 ? 'income' : 'expense',
-            amount: Math.abs(tx.amount / 100),
-            categoryId: category?.id || 'other-expense',
-            description: tx.description,
-            date: new Date(tx.time * 1000).toISOString().split('T')[0],
-            createdAt: tx.time * 1000,
-            externalId: tx.id,
-            createdBy: user.uid,
-            createdByName: user.displayName || user.email || 'Невідомий'
-          }));
+          for (const account of clientInfo.accounts) {
+            const monoTxs = await MonobankService.getStatement(token, account.id, thirtyDaysAgo);
+
+            for (const tx of monoTxs) {
+              if (existingExternalIds.has(tx.id)) continue;
+              existingExternalIds.add(tx.id); // prevent duplicates within this sync batch
+
+              const categoryId = MonobankService.mapToCategoryId(tx.mcc, tx.description);
+              const category = categories.find(c => c.id === categoryId) ||
+                               categories.find(c => c.id === 'other-expense');
+
+              syncPromises.push(addTransaction(familyId, {
+                type: tx.amount > 0 ? 'income' : 'expense',
+                amount: Math.abs(tx.amount / 100),
+                categoryId: category?.id || 'other-expense',
+                description: tx.description,
+                date: new Date(tx.time * 1000).toISOString().split('T')[0],
+                createdAt: tx.time * 1000,
+                externalId: tx.id,
+                createdBy: ownerUid,
+                createdByName: clientInfo.name || ownerName,
+              }));
+            }
+          }
+
+          if (syncPromises.length > 0) {
+            await Promise.all(syncPromises);
+            totalSynced += syncPromises.length;
+          }
+
+          console.log(`Synced ${syncPromises.length} transactions for ${ownerName}`);
+        } catch (memberError) {
+          console.error(`Failed to sync Monobank for ${ownerName}:`, memberError);
+          // Continue syncing other members even if one fails
         }
       }
-      
-      if (syncPromises.length > 0) {
-        await Promise.all(syncPromises);
-        console.log(`Successfully synced ${syncPromises.length} transactions from Monobank.`);
-      }
+
+      console.log(`Total synced: ${totalSynced} transactions from ${tokensToSync.length} member(s).`);
     } catch (error) {
       console.error('Failed to sync Monobank:', error);
       throw error;

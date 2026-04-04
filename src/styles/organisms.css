@@ -71,7 +71,14 @@
   width: 20px;
   display: flex;
   justify-content: center;
-  font-size: 1rem;
+}
+
+.navbar__footer {
+  margin-top: auto;
+  padding-top: var(--space-6);
+  border-top: 1px solid var(--border-color);
+  display: flex;
+  justify-content: center;
 }
 
 /* ===== HEADER ===== */

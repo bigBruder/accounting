@@ -2,6 +2,7 @@ import React from 'react';
 import { NavLink } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { Icon } from '../atoms/Icon';
+import { LanguageSwitcher } from '../molecules/LanguageSwitcher';
 
 export const Navbar: React.FC = () => {
   const { t } = useTranslation();
@@ -33,6 +34,9 @@ export const Navbar: React.FC = () => {
             <span>{item.label}</span>
           </NavLink>
         ))}
+      </div>
+      <div className="navbar__footer">
+        <LanguageSwitcher />
       </div>
     </nav>
   );

@@ -1,5 +1,4 @@
 import React, { useState } from 'react';
-import { LanguageSwitcher } from '../molecules/LanguageSwitcher';
 import { useAuth } from '../../contexts/AuthContext';
 import { FamilySettings } from './FamilySettings';
 
@@ -20,16 +19,13 @@ export const Header: React.FC = () => {
           </button>
         </div>
         <div className="header__right">
-          <div style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
-            <LanguageSwitcher />
-            <button
-              onClick={logout}
-              className="btn"
-              style={{ fontSize: '0.875rem', padding: '0.4rem 1rem', color: 'white', background: 'rgba(255,255,255,0.05)' }}
-            >
-              Вийти
-            </button>
-          </div>
+          <button
+            onClick={logout}
+            className="btn"
+            style={{ fontSize: '0.875rem', padding: '0.4rem 1rem', color: 'white', background: 'rgba(255,255,255,0.05)' }}
+          >
+            Вийти
+          </button>
         </div>
       </div>
       {isFamilyOpen && <FamilySettings onClose={() => setIsFamilyOpen(false)} />}

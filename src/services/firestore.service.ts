@@ -1,7 +1,26 @@
-import { collection, doc, setDoc, deleteDoc, updateDoc } from 'firebase/firestore';
+import { collection, doc, setDoc, deleteDoc, updateDoc, query, where, getDocs } from 'firebase/firestore';
 import { db } from './firebase';
 import type { Transaction, Category } from '../models/types';
 import { DEFAULT_CATEGORIES } from '../models/types';
+
+export interface FamilyMember {
+  uid: string;
+  email: string;
+  monobankToken?: string;
+  displayName?: string;
+}
+
+export const getFamilyMembers = async (familyId: string): Promise<FamilyMember[]> => {
+  const usersRef = collection(db, 'users');
+  const q = query(usersRef, where('familyId', '==', familyId));
+  const snapshot = await getDocs(q);
+  return snapshot.docs.map(doc => ({
+    uid: doc.id,
+    email: doc.data().email || '',
+    monobankToken: doc.data().monobankToken || '',
+    displayName: doc.data().displayName || doc.data().email || '',
+  }));
+};
 
 export const addTransaction = async (
   familyId: string, 
