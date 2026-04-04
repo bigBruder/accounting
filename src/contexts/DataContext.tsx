@@ -3,7 +3,7 @@ import { collection, onSnapshot } from 'firebase/firestore';
 import { db } from '../services/firebase';
 import { useAuth } from './AuthContext';
 import type { Transaction, Category } from '../models/types';
-import { initializeDefaultCategories, addTransaction, getFamilyMembers } from '../services/firestore.service';
+import { initializeDefaultCategories, addTransaction, getFamilyMembers, updateTransaction } from '../services/firestore.service';
 import { MonobankService } from '../services/monobank.service';
 
 interface DataContextType {
@@ -11,13 +11,15 @@ interface DataContextType {
   categories: Category[];
   loading: boolean;
   syncMonobank: (manualToken?: string) => Promise<void>;
+  fixExistingTransfers: () => Promise<number>;
 }
 
 const DataContext = createContext<DataContextType>({ 
   transactions: [], 
   categories: [], 
   loading: true,
-  syncMonobank: async (_?: string) => {} 
+  syncMonobank: async (_?: string) => {},
+  fixExistingTransfers: async () => 0
 });
 
 export const useData = () => useContext(DataContext);
@@ -222,9 +224,49 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
       throw error;
     }
   };
+  // Retroactively detect and fix existing transfers in Firestore
+  const fixExistingTransfers = async (): Promise<number> => {
+    if (!familyId) return 0;
+
+    const TIME_THRESHOLD = 5 * 60 * 1000; // 5 minutes
+    const nonTransfers = transactions.filter(t => t.type !== 'transfer' && t.externalId);
+    const matched = new Set<string>();
+
+    for (let i = 0; i < nonTransfers.length; i++) {
+      if (matched.has(nonTransfers[i].id)) continue;
+      const txA = nonTransfers[i];
+
+      for (let j = i + 1; j < nonTransfers.length; j++) {
+        if (matched.has(nonTransfers[j].id)) continue;
+        const txB = nonTransfers[j];
+
+        if (
+          txA.createdBy !== txB.createdBy &&
+          txA.createdBy && txB.createdBy &&
+          Math.abs(txA.amount - txB.amount) < 0.01 &&
+          txA.type !== txB.type && // one income, one expense
+          Math.abs(txA.createdAt - txB.createdAt) <= TIME_THRESHOLD
+        ) {
+          matched.add(txA.id);
+          matched.add(txB.id);
+          break;
+        }
+      }
+    }
+
+    if (matched.size === 0) return 0;
+
+    const updatePromises = Array.from(matched).map(id =>
+      updateTransaction(familyId, id, { type: 'transfer', categoryId: 'transfer' })
+    );
+
+    await Promise.all(updatePromises);
+    console.log(`Fixed ${matched.size} transactions as transfers (${matched.size / 2} pairs).`);
+    return matched.size;
+  };
 
   return (
-    <DataContext.Provider value={{ transactions, categories, loading, syncMonobank }}>
+    <DataContext.Provider value={{ transactions, categories, loading, syncMonobank, fixExistingTransfers }}>
       {children}
     </DataContext.Provider>
   );

@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { useAuth } from '../../contexts/AuthContext';
+import { useData } from '../../contexts/DataContext';
 
 interface FamilySettingsProps {
   onClose: () => void;
@@ -7,9 +8,26 @@ interface FamilySettingsProps {
 
 export const FamilySettings: React.FC<FamilySettingsProps> = ({ onClose }) => {
   const { familyId, joinFamily } = useAuth();
+  const { fixExistingTransfers } = useData();
   const [newId, setNewId] = useState('');
   const [loading, setLoading] = useState(false);
   const [copySuccess, setCopySuccess] = useState(false);
+  const [fixLoading, setFixLoading] = useState(false);
+  const [fixResult, setFixResult] = useState<number | null>(null);
+
+  const handleFixTransfers = async () => {
+    setFixLoading(true);
+    setFixResult(null);
+    try {
+      const count = await fixExistingTransfers();
+      setFixResult(count);
+    } catch (err) {
+      console.error(err);
+      alert('Помилка при виправленні переказів.');
+    } finally {
+      setFixLoading(false);
+    }
+  };
 
   const handleJoin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -81,6 +99,32 @@ export const FamilySettings: React.FC<FamilySettingsProps> = ({ onClose }) => {
               </button>
             </div>
           </form>
+
+          <hr style={{ margin: '24px 0', border: '0', borderTop: '1px solid #edf2f7' }} />
+
+          <div className="field-group">
+            <label style={{ display: 'block', marginBottom: '8px', fontWeight: 600, color: '#4a5568' }}>
+              🔄 Виправити перекази
+            </label>
+            <p className="hint" style={{ marginTop: 0, marginBottom: '12px' }}>
+              Автоматично знайти старі транзакції, які насправді є переказами між членами сім'ї, та виправити їх.
+            </p>
+            <button
+              type="button"
+              className="btn-join"
+              disabled={fixLoading}
+              onClick={handleFixTransfers}
+            >
+              {fixLoading ? 'Виправляю...' : 'Знайти та виправити перекази'}
+            </button>
+            {fixResult !== null && (
+              <p className="hint" style={{ color: fixResult > 0 ? '#38a169' : '#718096', marginTop: '8px' }}>
+                {fixResult > 0
+                  ? `✅ Виправлено ${fixResult} транзакцій (${fixResult / 2} пар переказів).`
+                  : '✅ Нових переказів не знайдено — все в порядку!'}
+              </p>
+            )}
+          </div>
 
           <div style={{ marginTop: '24px', display: 'flex', gap: '12px', justifyContent: 'flex-end' }}>
             <button type="button" className="btn-cancel" onClick={onClose} disabled={loading}>
