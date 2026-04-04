@@ -4,6 +4,7 @@ import { DashboardStats } from '../organisms/DashboardStats';
 import { TransactionList } from '../organisms/TransactionList';
 import { CategoryBreakdown } from '../organisms/CategoryBreakdown';
 import { DateRangePicker } from '../molecules/DateRangePicker';
+import { MonoConnectModal } from '../organisms/MonoConnectModal';
 import { getRecentTransactions } from '../../services/budget.service';
 import { deleteTransaction } from '../../services/firestore.service';
 import { useData } from '../../contexts/DataContext';
@@ -17,6 +18,7 @@ export const DashboardPage: React.FC = () => {
   const { familyId, monobankToken } = useAuth();
   const [syncLoading, setSyncLoading] = useState(false);
   const [cooldown, setCooldown] = useState(0);
+  const [isMonoModalOpen, setIsMonoModalOpen] = useState(false);
   
   const recentTransactions = getRecentTransactions(transactions, 5, filters);
 
@@ -32,7 +34,7 @@ export const DashboardPage: React.FC = () => {
 
   const handleSync = async () => {
     if (!monobankToken) {
-      alert('Будь ласка, спочатку додайте Monobank Token у налаштуваннях сім\'ї.');
+      setIsMonoModalOpen(true);
       return;
     }
     
@@ -46,6 +48,12 @@ export const DashboardPage: React.FC = () => {
     } finally {
       setSyncLoading(false);
     }
+  };
+
+  const handleMonoSuccess = () => {
+    setIsMonoModalOpen(false);
+    setCooldown(60);
+    alert('Вітаємо! Ваш Monobank успішно підключено та синхронізовано.');
   };
 
   const handleDelete = async (id: string) => {
@@ -104,6 +112,13 @@ export const DashboardPage: React.FC = () => {
           <CategoryBreakdown filters={filters} />
         </div>
       </div>
+
+      {isMonoModalOpen && (
+        <MonoConnectModal 
+          onClose={() => setIsMonoModalOpen(false)} 
+          onSuccess={handleMonoSuccess} 
+        />
+      )}
     </div>
   );
 };
