@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { createPortal } from 'react-dom';
 import { useAuth } from '../../contexts/AuthContext';
 import { useData } from '../../contexts/DataContext';
 
@@ -57,7 +58,7 @@ export const FamilySettings: React.FC<FamilySettingsProps> = ({ onClose }) => {
     }
   };
 
-  return (
+  return createPortal(
     <div className="family-settings-overlay" onClick={onClose}>
       <div className="family-settings-card animate-scale-in" onClick={e => e.stopPropagation()}>
         <div className="family-settings-header">
@@ -269,6 +270,7 @@ export const FamilySettings: React.FC<FamilySettingsProps> = ({ onClose }) => {
           to { opacity: 1; transform: scale(1); }
         }
       `}</style>
-    </div>
+    </div>,
+    document.body
   );
 };
