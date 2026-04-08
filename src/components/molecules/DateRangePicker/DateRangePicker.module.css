@@ -1,0 +1,135 @@
+.rangePickerRow {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.monthArrows {
+  display: flex;
+  align-items: center;
+}
+.monthArrowBtn {
+  background: #1a1e26;
+  color: #94a3b8;
+  border: 1px solid #334155;
+  width: 36px;
+  height: 36px;
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.5rem;
+  cursor: pointer;
+  transition: all 0.2s;
+  line-height: 1;
+}
+.monthArrowBtn:hover {
+  background: #334155;
+  color: white;
+  border-color: #6366f1;
+}
+
+.rangePickerContainer {
+  position: relative;
+  min-width: 220px;
+  display: inline-flex;
+  align-items: center;
+}
+.premiumDatepickerInput {
+  width: 100%;
+  background: #1a1e26;
+  color: #f8fafc;
+  border: 1px solid #334155;
+  padding: 8px 40px 8px 16px;
+  border-radius: 10px;
+  font-size: 0.9rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s;
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+  text-align: center;
+}
+.premiumDatepickerInput:hover {
+  border-color: #6366f1;
+  box-shadow: 0 0 0 4px rgba(99, 102, 241, 0.1);
+}
+.premiumDatepickerInput:focus {
+  outline: none;
+  border-color: #818cf8;
+  box-shadow: 0 0 0 4px rgba(129, 140, 248, 0.2);
+}
+.clearTrigger {
+  position: absolute;
+  right: 10px;
+  background: rgba(148, 163, 184, 0.2);
+  color: #94a3b8;
+  border: none;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.7rem;
+  cursor: pointer;
+  transition: all 0.15s;
+  z-index: 10;
+}
+.clearTrigger:hover {
+  background: #ef4444;
+  color: white;
+}
+
+/* Global styles for the calendar need to be handled carefully in modules */
+/* We'll use :global scope for react-datepicker overrides */
+:global(.premium-calendar) {
+  background-color: #0f172a !important;
+  border: 1px solid #334155 !important;
+  border-radius: 12px !important;
+  font-family: inherit !important;
+  padding: 8px !important;
+  box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.5) !important;
+  margin-top: 8px !important;
+}
+:global(.react-datepicker__header) {
+  background-color: transparent !important;
+  border-bottom: 1px solid #334155 !important;
+  padding-top: 8px !important;
+}
+:global(.react-datepicker__current-month),
+:global(.react-datepicker__day-name) {
+  color: #94a3b8 !important;
+  font-weight: 600 !important;
+  font-size: 0.85rem !important;
+}
+:global(.react-datepicker__day) {
+  color: #f1f5f9 !important;
+  border-radius: 6px !important;
+  margin: 2px !important;
+  width: 32px !important;
+  line-height: 32px !important;
+  transition: all 0.15s !important;
+}
+:global(.react-datepicker__day:hover) {
+  background-color: #334155 !important;
+}
+:global(.react-datepicker__day--in-range) {
+  background-color: rgba(99, 102, 241, 0.2) !important;
+  color: #c7d2fe !important;
+  border-radius: 0 !important;
+}
+:global(.react-datepicker__day--range-start),
+:global(.react-datepicker__day--range-end) {
+  background-color: #6366f1 !important;
+  color: white !important;
+  border-radius: 6px !important;
+  box-shadow: 0 2px 8px rgba(99, 102, 241, 0.4) !important;
+}
+:global(.react-datepicker__day--outside-month) {
+  color: #475569 !important;
+}
+:global(.react-datepicker__navigation) {
+  top: 14px !important;
+}
+:global(.react-datepicker__navigation-icon::before) {
+  border-color: #94a3b8 !important;
+}
