@@ -29,6 +29,16 @@ import {
 } from 'lucide-react';
 import { format } from 'date-fns';
 import { uk } from 'date-fns/locale';
+import { db } from './services/firebase';
+import { 
+  collection, 
+  onSnapshot, 
+  addDoc, 
+  query, 
+  orderBy, 
+  Timestamp,
+  serverTimestamp 
+} from 'firebase/firestore';
 
 // Auth Config
 const APP_PASSWORD = 'panorama'; // Secure application password
@@ -149,6 +159,27 @@ export const App: React.FC = () => {
     }
   };
 
+  // Real-time Firestore sync
+  useEffect(() => {
+    if (!isAuthorized) return;
+    
+    const q = query(collection(db, 'camp_transactions'), orderBy('date', 'desc'));
+    const unsubscribe = onSnapshot(q, (snapshot) => {
+      const txs = snapshot.docs.map(doc => {
+        const data = doc.data();
+        return {
+          id: doc.id,
+          ...data,
+          date: data.date instanceof Timestamp ? data.date.toDate() : new Date(data.date)
+        } as Transaction;
+      });
+      setTransactions(txs);
+      setLoading(false);
+    });
+
+    return () => unsubscribe();
+  }, [isAuthorized]);
+
   useEffect(() => {
     if (isAuthorized) {
       updateActivity();
@@ -172,11 +203,8 @@ export const App: React.FC = () => {
     }
   }, [isAuthorized]);
 
-  const [transactions, setTransactions] = useState<Transaction[]>([
-    { id: '1', type: 'income', description: 'Внесок від батьків', amount: 5000, date: new Date(), category: 'Реєстраційні внески', party: 'Сім\'я Іванових' },
-    { id: '2', type: 'expense', description: 'Закупівля продуктів', amount: 1200, date: new Date(), category: 'Харчування', party: 'АТБ-Маркет' },
-    { id: '3', type: 'income', description: 'Благодійний донат', amount: 2500, date: new Date(), category: 'Донати / Пожертви', party: 'Анонімний меценат' },
-  ]);
+  const [transactions, setTransactions] = useState<Transaction[]>([]);
+  const [loading, setLoading] = useState(true);
 
   const [filter, setFilter] = useState('');
   const [viewFilter, setViewFilter] = useState<'all' | 'income' | 'expense'>('all');
@@ -269,20 +297,27 @@ export const App: React.FC = () => {
     document.body.removeChild(link);
   };
 
-  const addTransaction = (e: React.FormEvent<HTMLFormElement>) => {
+  const addTransaction = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     const formData = new FormData(e.currentTarget);
-    const newTx: Transaction = {
-      id: Math.random().toString(36).substr(2, 9),
-      type: formType,
-      description: formData.get('description') as string,
-      amount: Number(formData.get('amount')),
-      date: transactionDate,
-      category: selectedCategory,
-      party: formData.get('party') as string
-    };
-    setTransactions(prev => [...prev, newTx]);
-    setIsFormOpen(false);
+    
+    try {
+      const newTx = {
+        type: formType as 'income' | 'expense',
+        description: formData.get('description') as string,
+        amount: Number(formData.get('amount')),
+        date: Timestamp.fromDate(transactionDate),
+        category: selectedCategory,
+        party: formData.get('party') as string,
+        createdAt: serverTimestamp()
+      };
+      
+      await addDoc(collection(db, 'camp_transactions'), newTx);
+      setIsFormOpen(false);
+    } catch (error) {
+      console.error("Error adding transaction: ", error);
+      alert("Помилка при збереженні. Спробуйте ще раз.");
+    }
   };
 
   if (!isAuthorized) {
