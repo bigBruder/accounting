@@ -24,7 +24,8 @@ import {
   CircleDollarSign,
   Heart,
   Key,
-  LayoutGrid
+  LayoutGrid,
+  LogOut
 } from 'lucide-react';
 import { format } from 'date-fns';
 import { uk } from 'date-fns/locale';
@@ -414,8 +415,8 @@ export const App: React.FC = () => {
             <Download size={18} />
             <span>Експорт звіту</span>
           </button>
-          <button className="btn-icon logout" onClick={handleLogout} title="Вийти">
-            <X size={20} />
+          <button className="btn-logout-icon" onClick={handleLogout} title="Вийти">
+            <LogOut size={20} />
           </button>
         </div>
       </header>
@@ -774,11 +775,12 @@ export const App: React.FC = () => {
         }
         .btn-icon-label:hover { background: rgba(255, 255, 255, 0.1); border-color: rgba(255, 255, 255, 0.2); transform: translateY(-2px); }
 
-        .btn-icon.logout { 
-          background: rgba(239, 68, 68, 0.1); border: 1px solid rgba(239, 68, 68, 0.2); color: var(--danger); 
+        .header-actions { display: flex; align-items: center; gap: 1rem; }
+        .btn-logout-icon { 
+          background: rgba(255, 255, 255, 0.05); border: 1px solid var(--glass-border); color: var(--secondary); 
           padding: 0.8rem; border-radius: 14px; display: flex; align-items: center; justify-content: center; cursor: pointer; transition: all 0.3s;
         }
-        .btn-icon.logout:hover { background: var(--danger); color: white; transform: translateY(-2px); box-shadow: 0 5px 15px rgba(239, 68, 68, 0.4); }
+        .btn-logout-icon:hover { background: rgba(239, 68, 68, 0.15); color: var(--danger); border-color: rgba(239, 68, 68, 0.2); transform: translateY(-2px); }
 
         .dashboard { padding-bottom: 5rem; }
         .stats-section {
