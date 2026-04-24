@@ -358,17 +358,32 @@ export const App: React.FC = () => {
           .btn-primary-gradient.full { 
             width: 100%; 
             justify-content: center; 
-            padding: 1.3rem; 
-            font-size: 1.1rem; 
-            margin-top: 0.8rem; 
-            letter-spacing: 0.02em;
-            box-shadow: 0 8px 25px var(--primary-glow);
+            padding: 1.4rem; 
+            font-size: 1.15rem; 
+            margin-top: 1.2rem; 
+            letter-spacing: 0.03em;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            background: linear-gradient(135deg, #6366f1, #a855f7);
+            color: white;
+            font-weight: 800;
+            border-radius: 20px;
+            box-shadow: 0 10px 30px rgba(99, 102, 241, 0.4), inset 0 1px 1px rgba(255,255,255,0.4);
+            cursor: pointer;
+            transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+          }
+          .btn-primary-gradient.full:hover {
+            transform: translateY(-4px) scale(1.02);
+            box-shadow: 0 15px 40px rgba(168, 85, 247, 0.5), inset 0 1px 1px rgba(255,255,255,0.6);
+            background: linear-gradient(135deg, #4f46e5, #9333ea);
+          }
+          .btn-primary-gradient.full:active {
+            transform: translateY(-1px) scale(0.98);
           }
           .shadow-glow-primary {
-            box-shadow: 0 0 30px var(--primary-glow);
-          }
-          .shadow-glow-primary:hover {
-            box-shadow: 0 0 45px var(--primary-glow);
+            filter: drop-shadow(0 0 12px rgba(99, 102, 241, 0.3));
           }
           .animate-in { animation: authFadeIn 0.6s cubic-bezier(0.22, 1, 0.36, 1); }
           @keyframes authFadeIn { from { opacity: 0; transform: translateY(20px) scale(0.95); } to { opacity: 1; transform: translateY(0) scale(1); } }
