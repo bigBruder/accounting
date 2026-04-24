@@ -97,7 +97,7 @@
   }
   .app-main {
     padding: var(--space-4);
-    padding-bottom: calc(70px + var(--space-4));
+    padding-bottom: calc(85px + env(safe-area-inset-bottom, 0px));
   }
 
   .grid-3,

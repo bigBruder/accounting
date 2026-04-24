@@ -8,6 +8,7 @@ html {
   font-size: 16px;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+  background-color: var(--bg-primary);
 }
 
 body {
@@ -17,6 +18,7 @@ body {
   background-color: var(--bg-primary);
   line-height: 1.6;
   min-height: 100vh;
+  overscroll-behavior-y: none;
 }
 
 a {

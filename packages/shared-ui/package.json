@@ -1,0 +1,9 @@
+{
+  "name": "shared-ui",
+  "version": "1.0.0",
+  "main": "./index.ts",
+  "dependencies": {
+    "react": "^19.2.4",
+    "lucide-react": "^0.363.0"
+  }
+}

@@ -418,12 +418,16 @@
     width: 100%;
     height: auto;
     flex-direction: row;
-    padding: var(--space-2) var(--space-4);
+    padding: var(--space-2) var(--space-4) calc(var(--space-2) + env(safe-area-inset-bottom, 0px));
     border-right: none;
     border-top: 1px solid var(--border-color);
+    background: rgba(15, 17, 23, 0.95);
+    backdrop-filter: blur(20px);
+    z-index: 1000;
   }
 
-  .navbar__logo {
+  .navbar__logo,
+  .navbar__footer {
     display: none;
   }
 
@@ -431,13 +435,25 @@
     flex-direction: row;
     width: 100%;
     justify-content: space-around;
+    gap: 0;
   }
 
   .navbar__link {
     flex-direction: column;
-    gap: var(--space-1);
+    gap: 4px;
     padding: var(--space-2);
-    font-size: var(--fs-xs);
+    font-size: 10px;
+    flex: 1;
+    background: transparent !important;
+  }
+
+  .navbar__link--active {
+    color: var(--accent-primary);
+  }
+
+  .navbar__link-icon {
+    width: 24px;
+    font-size: 1.2rem;
   }
 
   .transaction-form__grid {

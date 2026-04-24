@@ -59,6 +59,7 @@ export const TransactionForm: React.FC<TransactionFormProps> = ({ onSubmit, init
               onChange={(e) => setFormData({ ...formData, description: e.target.value })}
               placeholder={t('common.descriptionPlaceholder', { defaultValue: 'Наприклад: Продукти' })}
               required
+              enterKeyHint="next"
             />
           </div>
           <div className="form-group">
@@ -66,11 +67,13 @@ export const TransactionForm: React.FC<TransactionFormProps> = ({ onSubmit, init
             <input 
               type="number" 
               step="0.01" 
+              inputMode="decimal"
               className="input" 
               value={formData.amount || ''}
               onChange={(e) => setFormData({ ...formData, amount: parseFloat(e.target.value) })}
               placeholder="0.00"
               required
+              enterKeyHint="done"
             />
           </div>
         </div>

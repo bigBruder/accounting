@@ -1,32 +1,17 @@
 {
-  "name": "family-budget",
+  "name": "accounting-monorepo",
   "private": true,
-  "version": "0.0.0",
-  "type": "module",
+  "version": "1.0.0",
+  "workspaces": [
+    "apps/*",
+    "packages/*"
+  ],
   "scripts": {
-    "dev": "vite",
-    "build": "tsc && vite build",
-    "preview": "vite preview"
+    "dev:family": "npm run dev -w apps/family-budget",
+    "dev:camp": "npm run dev -w apps/camp-manager",
+    "build": "npm run build -w apps/family-budget && npm run build -w apps/camp-manager"
   },
   "devDependencies": {
-    "@types/react": "^19.2.14",
-    "@types/react-dom": "^19.2.3",
-    "@vitejs/plugin-react": "^4.3.4",
-    "typescript": "~5.9.3",
-    "vite": "^6.0.0",
-    "vite-plugin-pwa": "^1.2.0"
-  },
-  "dependencies": {
-    "date-fns": "^4.1.0",
-    "firebase": "^12.11.0",
-    "i18next": "^25.8.20",
-    "i18next-browser-languagedetector": "^8.2.1",
-    "react": "^19.2.4",
-    "react-datepicker": "^9.1.0",
-    "react-dom": "^19.2.4",
-    "react-i18next": "^16.5.8",
-    "react-is": "^19.2.4",
-    "react-router-dom": "^7.13.1",
-    "recharts": "^3.8.1"
+    "typescript": "~5.9.3"
   }
 }
