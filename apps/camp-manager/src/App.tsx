@@ -29,6 +29,9 @@ import {
 import { format } from 'date-fns';
 import { uk } from 'date-fns/locale';
 
+// Auth Config
+const APP_PASSWORD = 'panorama'; // Secure application password
+
 // Types
 interface Transaction {
   id: string;
@@ -125,10 +128,53 @@ const DatePicker: React.FC<{ value: Date; onChange: (date: Date) => void }> = ({
 };
 
 export const App: React.FC = () => {
+  const SESSION_TIMEOUT = 2 * 60 * 60 * 1000; // 2 hours in ms
+  const [isAuthorized, setIsAuthorized] = useState(() => {
+    const auth = sessionStorage.getItem('camp_auth') === 'true';
+    const lastActivity = Number(sessionStorage.getItem('camp_last_activity') || 0);
+    if (auth && Date.now() - lastActivity > SESSION_TIMEOUT) {
+      sessionStorage.removeItem('camp_auth');
+      return false;
+    }
+    return auth;
+  });
+  const [passwordInput, setPasswordInput] = useState('');
+  const [authError, setAuthError] = useState(false);
+
+  // Update activity timestamp
+  const updateActivity = () => {
+    if (isAuthorized) {
+      sessionStorage.setItem('camp_last_activity', Date.now().toString());
+    }
+  };
+
+  useEffect(() => {
+    if (isAuthorized) {
+      updateActivity();
+      const interval = setInterval(() => {
+        const lastActivity = Number(sessionStorage.getItem('camp_last_activity') || 0);
+        if (Date.now() - lastActivity > SESSION_TIMEOUT) {
+          handleLogout();
+        }
+      }, 60000); // Check every minute
+      
+      window.addEventListener('mousemove', updateActivity);
+      window.addEventListener('keydown', updateActivity);
+      window.addEventListener('click', updateActivity);
+      
+      return () => {
+        clearInterval(interval);
+        window.removeEventListener('mousemove', updateActivity);
+        window.removeEventListener('keydown', updateActivity);
+        window.removeEventListener('click', updateActivity);
+      };
+    }
+  }, [isAuthorized]);
+
   const [transactions, setTransactions] = useState<Transaction[]>([
-    { id: '1', type: 'income', description: 'Внесок від батьків', amount: 5000, date: new Date(), category: 'Внески', party: 'Сім\'я Іванових' },
+    { id: '1', type: 'income', description: 'Внесок від батьків', amount: 5000, date: new Date(), category: 'Реєстраційні внески', party: 'Сім\'я Іванових' },
     { id: '2', type: 'expense', description: 'Закупівля продуктів', amount: 1200, date: new Date(), category: 'Харчування', party: 'АТБ-Маркет' },
-    { id: '3', type: 'income', description: 'Благодійний донат', amount: 2500, date: new Date(), category: 'Благодійність', party: 'Анонімний меценат' },
+    { id: '3', type: 'income', description: 'Благодійний донат', amount: 2500, date: new Date(), category: 'Донати / Пожертви', party: 'Анонімний меценат' },
   ]);
 
   const [filter, setFilter] = useState('');
@@ -162,6 +208,24 @@ export const App: React.FC = () => {
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
+  const handleAuth = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (passwordInput === APP_PASSWORD) {
+      setIsAuthorized(true);
+      sessionStorage.setItem('camp_auth', 'true');
+      sessionStorage.setItem('camp_last_activity', Date.now().toString());
+      setAuthError(false);
+    } else {
+      setAuthError(true);
+    }
+  };
+
+  const handleLogout = () => {
+    setIsAuthorized(false);
+    sessionStorage.removeItem('camp_auth');
+    sessionStorage.removeItem('camp_last_activity');
+  };
+
   const stats = useMemo(() => {
     const income = transactions.filter(t => t.type === 'income').reduce((sum, t) => sum + t.amount, 0);
     const expense = transactions.filter(t => t.type === 'expense').reduce((sum, t) => sum + t.amount, 0);
@@ -181,9 +245,9 @@ export const App: React.FC = () => {
   , [transactions, filter, viewFilter]);
 
   const handleExportCSV = () => {
-    const headers = ['ID', 'Тип', 'Опис', 'Сума', 'Дата', 'Категорія', 'Сторона'];
-    const rows = filteredTransactions.map(t => [
-      t.id,
+    const headers = ['№', 'Тип', 'Опис', 'Сума', 'Дата', 'Категорія', 'Сторона'];
+    const rows = filteredTransactions.map((t, index) => [
+      (index + 1).toString(),
       t.type === 'income' ? 'Дохід' : 'Витрата',
       t.description,
       t.amount.toString(),
@@ -198,7 +262,7 @@ export const App: React.FC = () => {
     const url = URL.createObjectURL(blob);
     const link = document.createElement("a");
     link.setAttribute("href", url);
-    link.setAttribute("download", `camp_budget_${format(new Date(), 'yyyy-MM-dd')}.csv`);
+    link.setAttribute("download", filename);
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
@@ -219,6 +283,99 @@ export const App: React.FC = () => {
     setTransactions(prev => [...prev, newTx]);
     setIsFormOpen(false);
   };
+
+  if (!isAuthorized) {
+    return (
+      <div className="camp-container">
+        <div className="background-blobs">
+          <div className="blob blob-1"></div>
+          <div className="blob blob-2"></div>
+        </div>
+        <div className="auth-gate-wrapper">
+          <div className="auth-card glass-premium animate-in">
+            <div className="logo-wrapper large">
+              <Tent size={48} />
+            </div>
+            <h2>Вхід у CampManager</h2>
+            <p className="auth-note">Будь ласка, введіть пароль для доступу до фінансів табору</p>
+            
+            <form onSubmit={handleAuth} className="auth-form">
+              <div className={`input-wrapper-auth ${authError ? 'error' : ''}`}>
+                <Key size={18} className="field-icon-auth" />
+                <input 
+                  type="password" 
+                  placeholder="Пароль доступу"
+                  value={passwordInput}
+                  onChange={(e) => setPasswordInput(e.target.value)}
+                  autoFocus
+                />
+              </div>
+              {authError && <p className="error-text">Невірний пароль, спробуйте ще раз.</p>}
+              <button type="submit" className="btn-primary-gradient full shadow-glow-primary">
+                <span>Увійти в систему</span>
+                <ArrowUpRight size={18} />
+              </button>
+            </form>
+          </div>
+        </div>
+        
+        <style>{`
+          .auth-gate-wrapper { height: 100vh; display: flex; align-items: center; justify-content: center; position: relative; z-index: 100; padding: 1.5rem; }
+          .auth-card { width: 100%; max-width: 440px; padding: 3.5rem 3rem; border-radius: 40px; text-align: center; }
+          .logo-wrapper.large { width: 90px; height: 90px; display: flex; align-items: center; justify-content: center; margin: 0 auto 2rem; background: linear-gradient(135deg, var(--primary), #a855f7); border-radius: 28px; box-shadow: 0 15px 35px var(--primary-glow); color: white; }
+          .auth-card h2 { font-size: 1.8rem; font-weight: 800; margin-bottom: 0.8rem; letter-spacing: -0.02em; }
+          .auth-note { color: var(--secondary); margin-bottom: 2.5rem; font-size: 0.95rem; line-height: 1.5; }
+          .auth-form { display: flex; flex-direction: column; gap: 1.5rem; }
+          
+          .input-wrapper-auth { position: relative; width: 100%; }
+          .input-wrapper-auth input { 
+            width: 100%; background: rgba(15, 23, 42, 0.4); border: 1px solid var(--glass-border); 
+            padding: 1.2rem 1.4rem 1.2rem 3.4rem; border-radius: 15px; color: white; transition: all 0.3s; font-size: 1.1rem;
+          }
+          .field-icon-auth { position: absolute; left: 1.4rem; top: 50%; transform: translateY(-50%); color: var(--secondary); pointer-events: none; }
+          
+          .btn-primary-gradient.full { width: 100%; justify-content: center; padding: 1.2rem; font-size: 1rem; margin-top: 0.5rem; }
+          .error-text { color: var(--danger); font-size: 0.85rem; font-weight: 600; margin-top: -0.5rem; text-align: left; padding-left: 0.5rem; }
+          .input-wrapper-auth.error input { border-color: var(--danger); background: rgba(239, 68, 68, 0.05); }
+
+          :root {
+            --bg-dark: #0f172a;
+            --primary: #6366f1;
+            --primary-glow: rgba(99, 102, 241, 0.4);
+            --secondary: #94a3b8;
+            --success: #10b981;
+            --danger: #ef4444;
+            --warning: #f59e0b;
+            --white: #f8fafc;
+            --glass-border: rgba(255, 255, 255, 0.12);
+          }
+          .camp-container { min-height: 100vh; background: var(--bg-dark); color: var(--white); font-family: 'Inter', sans-serif; overflow: hidden; }
+          .background-blobs { position: absolute; top: 0; left: 0; width: 100%; height: 100%; z-index: 0; }
+          .blob { position: absolute; width: 500px; height: 500px; filter: blur(120px); opacity: 0.15; border-radius: 50%; }
+          .blob-1 { top: -100px; right: -100px; background: var(--primary); }
+          .blob-2 { bottom: -100px; left: -100px; background: #a855f7; }
+          .glass-premium { background: rgba(30, 41, 59, 0.45); backdrop-filter: blur(20px); border: 1px solid var(--glass-border); box-shadow: 0 20px 50px rgba(0,0,0,0.3); }
+          .btn-primary-gradient.full { 
+            width: 100%; 
+            justify-content: center; 
+            padding: 1.3rem; 
+            font-size: 1.1rem; 
+            margin-top: 0.8rem; 
+            letter-spacing: 0.02em;
+            box-shadow: 0 8px 25px var(--primary-glow);
+          }
+          .shadow-glow-primary {
+            box-shadow: 0 0 30px var(--primary-glow);
+          }
+          .shadow-glow-primary:hover {
+            box-shadow: 0 0 45px var(--primary-glow);
+          }
+          .animate-in { animation: authFadeIn 0.6s cubic-bezier(0.22, 1, 0.36, 1); }
+          @keyframes authFadeIn { from { opacity: 0; transform: translateY(20px) scale(0.95); } to { opacity: 1; transform: translateY(0) scale(1); } }
+        `}</style>
+      </div>
+    );
+  }
 
   return (
     <div className="camp-container">
@@ -241,6 +398,9 @@ export const App: React.FC = () => {
           <button className="btn-icon-label" onClick={handleExportCSV}>
             <Download size={18} />
             <span>Експорт звіту</span>
+          </button>
+          <button className="btn-icon logout" onClick={handleLogout} title="Вийти">
+            <X size={20} />
           </button>
         </div>
       </header>
@@ -599,6 +759,12 @@ export const App: React.FC = () => {
         }
         .btn-icon-label:hover { background: rgba(255, 255, 255, 0.1); border-color: rgba(255, 255, 255, 0.2); transform: translateY(-2px); }
 
+        .btn-icon.logout { 
+          background: rgba(239, 68, 68, 0.1); border: 1px solid rgba(239, 68, 68, 0.2); color: var(--danger); 
+          padding: 0.8rem; border-radius: 14px; display: flex; align-items: center; justify-content: center; cursor: pointer; transition: all 0.3s;
+        }
+        .btn-icon.logout:hover { background: var(--danger); color: white; transform: translateY(-2px); box-shadow: 0 5px 15px rgba(239, 68, 68, 0.4); }
+
         .dashboard { padding-bottom: 5rem; }
         .stats-section {
           display: grid;
@@ -769,8 +935,6 @@ export const App: React.FC = () => {
         .btn-submit-gradient.income { background: linear-gradient(135deg, var(--success), #059669); }
         .btn-submit-gradient.expense { background: linear-gradient(135deg, var(--danger), #b91c1c); }
         .btn-submit-gradient:hover { transform: translateY(-2px); box-shadow: 0 10px 20px rgba(0,0,0,0.2); }
-        .row-animate { animation: fadeInScale 0.4s ease-out backwards; }
-        @keyframes fadeInScale { from { opacity: 0; transform: scale(0.98) translateY(10px); } to { opacity: 1; transform: scale(1) translateY(0); } }
 
         @media (max-width: 768px) {
           .app-header { padding: 1.2rem; margin: 1rem 0; flex-direction: column; gap: 1.5rem; text-align: center; }
@@ -781,4 +945,3 @@ export const App: React.FC = () => {
     </div>
   );
 };
-
