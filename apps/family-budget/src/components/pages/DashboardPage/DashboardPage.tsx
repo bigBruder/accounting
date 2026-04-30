@@ -26,7 +26,7 @@ export const DashboardPage: React.FC = () => {
     dateFrom: defaultFrom,
     dateTo: defaultTo
   });
-  const { transactions, loading, syncMonobank } = useData();
+  const { transactions, categories, loading, syncMonobank } = useData();
   const { familyId, monobankToken } = useAuth();
   const [syncLoading, setSyncLoading] = useState(false);
   const [cooldown, setCooldown] = useState(0);
@@ -126,7 +126,7 @@ export const DashboardPage: React.FC = () => {
         <div id="recent-transactions">
           <TransactionList 
             transactions={recentTransactions} 
-            title={filters.categoryId ? `${t('common.allTransactions')} (${transactions.find(t => t.categoryId === filters.categoryId)?.description || '...' })` : t('common.allTransactions')} 
+            title={filters.categoryId ? `${t('common.allTransactions')} (${categories.find(c => c.id === filters.categoryId)?.name || '...' })` : t('common.allTransactions')} 
             compact={true}
             onDelete={handleDelete}
           />
