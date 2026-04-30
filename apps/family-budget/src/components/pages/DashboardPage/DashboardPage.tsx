@@ -8,7 +8,7 @@ import { SpendingTrend } from '../../organisms/SpendingTrend';
 import { GoalsWidget } from '../../organisms/GoalsWidget';
 import { DateRangePicker } from '../../molecules/DateRangePicker';
 import { MonoConnectModal } from '../../organisms/MonoConnectModal';
-import { getRecentTransactions } from '../../../services/budget.service';
+import { getFilteredTransactions } from '../../../services/budget.service';
 import { deleteTransaction } from '../../../services/firestore.service';
 import { useData } from '../../../contexts/DataContext';
 import { useAuth } from '../../../contexts/AuthContext';
@@ -32,7 +32,7 @@ export const DashboardPage: React.FC = () => {
   const [cooldown, setCooldown] = useState(0);
   const [isMonoModalOpen, setIsMonoModalOpen] = useState(false);
   
-  const recentTransactions = getRecentTransactions(transactions, 5, filters);
+  const recentTransactions = getFilteredTransactions(transactions, filters);
 
   useEffect(() => {
     let timer: any;
@@ -126,7 +126,7 @@ export const DashboardPage: React.FC = () => {
         <div id="recent-transactions">
           <TransactionList 
             transactions={recentTransactions} 
-            title={filters.categoryId ? `${t('dashboard.recentTransactions')} (${transactions.find(t => t.categoryId === filters.categoryId)?.description || '...' })` : t('dashboard.recentTransactions')} 
+            title={filters.categoryId ? `${t('common.allTransactions')} (${transactions.find(t => t.categoryId === filters.categoryId)?.description || '...' })` : t('common.allTransactions')} 
             compact={true}
             onDelete={handleDelete}
           />
