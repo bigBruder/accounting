@@ -314,6 +314,11 @@ export const App: React.FC = () => {
     document.body.removeChild(link);
   };
 
+  const closeForm = () => {
+    setIsFormOpen(false);
+    setIsSubmitting(false);
+  };
+
   const addTransaction = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     if (isSubmitting) return;
@@ -626,11 +631,11 @@ export const App: React.FC = () => {
 
       {isFormOpen && (
         <div className="modal-root">
-          <div className="modal-backdrop" onClick={() => setIsFormOpen(false)}></div>
+          <div className="modal-backdrop" onClick={closeForm}></div>
           <div className="modal-box glass-premium animate-in">
             <header className="modal-header">
               <h3>Нова операція</h3>
-              <button className="btn-close" onClick={() => setIsFormOpen(false)}>
+              <button className="btn-close" onClick={closeForm}>
                 <X size={20} />
               </button>
             </header>
@@ -759,7 +764,7 @@ export const App: React.FC = () => {
               </div>
 
               <footer className="form-actions">
-                <button type="button" className="btn-secondary-flat" onClick={() => setIsFormOpen(false)}>Скасувати</button>
+                <button type="button" className="btn-secondary-flat" onClick={closeForm}>Скасувати</button>
                 <button type="submit" className={`btn-submit-gradient ${formType}`} disabled={isSubmitting}>
                   {isSubmitting ? 'Збереження...' : 'Зберегти транзакцію'}
                 </button>
