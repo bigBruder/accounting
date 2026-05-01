@@ -40,17 +40,10 @@ jobs:
       - name: Setup Pages
         uses: actions/configure-pages@v4
 
-      - name: Prepare deployment folder
-        run: |
-          mkdir -p deploy_dist
-          cp -r apps/family-budget/dist/* deploy_dist/
-          mkdir -p deploy_dist/camp
-          cp -r apps/camp-manager/dist/* deploy_dist/camp/
-
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v3
         with:
-          path: './deploy_dist'
+          path: './apps/family-budget/dist'
 
       - name: Deploy to GitHub Pages
         id: deployment
