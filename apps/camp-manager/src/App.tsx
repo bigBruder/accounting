@@ -25,7 +25,8 @@ import {
   Heart,
   Key,
   LayoutGrid,
-  LogOut
+  LogOut,
+  Trash2
 } from 'lucide-react';
 import { format } from 'date-fns';
 import { uk } from 'date-fns/locale';
@@ -34,6 +35,8 @@ import {
   collection, 
   onSnapshot, 
   addDoc, 
+  deleteDoc,
+  doc,
   query, 
   orderBy, 
   Timestamp,
@@ -320,6 +323,17 @@ export const App: React.FC = () => {
     }
   };
 
+  const handleDeleteTransaction = async (id: string) => {
+    if (window.confirm('Ви впевнені, що хочете видалити цей запис?')) {
+      try {
+        await deleteDoc(doc(db, 'camp_transactions', id));
+      } catch (error) {
+        console.error("Error deleting transaction: ", error);
+        alert("Помилка при видаленні. Спробуйте ще раз.");
+      }
+    }
+  };
+
   if (!isAuthorized) {
     return (
       <div className="camp-container">
@@ -530,6 +544,7 @@ export const App: React.FC = () => {
                   <th>Категорія</th>
                   <th>Контрагент</th>
                   <th className="text-right">Сума</th>
+                  <th className="text-right">Дії</th>
                 </tr>
               </thead>
               <tbody>
@@ -566,6 +581,15 @@ export const App: React.FC = () => {
                         <div className={`tx-amount ${t.type}`}>
                           {t.type === 'income' ? '+' : '-'}{t.amount.toLocaleString()} ₴
                         </div>
+                      </td>
+                      <td className="text-right">
+                        <button 
+                          className="btn-delete-row" 
+                          onClick={() => handleDeleteTransaction(t.id)}
+                          title="Видалити запис"
+                        >
+                          <Trash2 size={16} />
+                        </button>
                       </td>
                     </tr>
                   );
@@ -878,6 +902,26 @@ export const App: React.FC = () => {
         .badge-pill { display: flex; align-items: center; gap: 0.6rem; background: rgba(255,255,255,0.04); padding: 0.4rem 1rem; border-radius: 100px; color: var(--secondary); font-size: 0.95rem; font-weight: 500; border: 1px solid rgba(255,255,255,0.05); width: fit-content; }
         .row-number { font-family: 'JetBrains Mono', monospace; font-size: 0.8rem; color: var(--secondary); opacity: 0.6; }
         .tx-amount { font-family: 'JetBrains Mono', monospace; font-size: 1.15rem; font-weight: 700; }
+
+        .btn-delete-row {
+          background: rgba(239, 68, 68, 0.1);
+          border: 1px solid rgba(239, 68, 68, 0.1);
+          color: var(--danger);
+          padding: 0.6rem;
+          border-radius: 10px;
+          cursor: pointer;
+          transition: all 0.2s;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          margin-left: auto;
+        }
+        .btn-delete-row:hover {
+          background: var(--danger);
+          color: white;
+          transform: scale(1.1);
+          box-shadow: 0 4px 12px rgba(239, 68, 68, 0.3);
+        }
 
         /* Custom Selector */
         .custom-select-wrapper { position: relative; width: 100%; }
