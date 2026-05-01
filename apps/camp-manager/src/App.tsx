@@ -168,18 +168,29 @@ export const App: React.FC = () => {
     if (!isAuthorized) return;
     
     const q = query(collection(db, 'camp_transactions'), orderBy('date', 'desc'));
-    const unsubscribe = onSnapshot(q, (snapshot) => {
-      const txs = snapshot.docs.map(doc => {
-        const data = doc.data();
-        return {
-          id: doc.id,
-          ...data,
-          date: data.date instanceof Timestamp ? data.date.toDate() : new Date(data.date)
-        } as Transaction;
-      });
-      setTransactions(txs);
-      setLoading(false);
-    });
+    const unsubscribe = onSnapshot(q, 
+      (snapshot) => {
+        const txs = snapshot.docs.map(doc => {
+          const data = doc.data();
+          return {
+            id: doc.id,
+            ...data,
+            date: data.date instanceof Timestamp ? data.date.toDate() : new Date(data.date)
+          } as Transaction;
+        });
+        setTransactions(txs);
+        setLoading(false);
+      },
+      (error) => {
+        console.error("Firestore Error:", error);
+        if (error.code === 'permission-denied') {
+          alert("Помилка доступу до бази даних. Перевірте правила безпеки Firebase.");
+        } else {
+          alert("Помилка при завантаженні даних: " + error.message);
+        }
+        setLoading(false);
+      }
+    );
 
     return () => unsubscribe();
   }, [isAuthorized]);

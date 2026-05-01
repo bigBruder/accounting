@@ -10,5 +10,10 @@ const firebaseConfig = {
   appId: import.meta.env.VITE_FIREBASE_APP_ID
 };
 
+// Simple validation to help debug missing env vars on Vercel
+if (!firebaseConfig.apiKey) {
+  console.warn("Firebase API Key is missing! Check your Environment Variables in Vercel.");
+}
+
 const app = initializeApp(firebaseConfig);
 export const db = getFirestore(app);
