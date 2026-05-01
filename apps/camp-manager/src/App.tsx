@@ -16,6 +16,7 @@ import {
   X,
   CreditCard,
   Tent,
+  AlertTriangle,
   ChevronDown,
   Utensils,
   Truck,
@@ -215,6 +216,8 @@ export const App: React.FC = () => {
   const [formType, setFormType] = useState<'income' | 'expense'>('income');
   const [transactionDate, setTransactionDate] = useState(new Date());
   const [partyType, setPartyType] = useState<'person' | 'org'>('person');
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [deleteConfirmId, setDeleteConfirmId] = useState<string | null>(null);
   
   const incomeCategories = CATEGORIES.filter(c => c.type === 'income');
   const expenseCategories = CATEGORIES.filter(c => c.type === 'expense');
@@ -302,6 +305,9 @@ export const App: React.FC = () => {
 
   const addTransaction = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
+    if (isSubmitting) return;
+    
+    setIsSubmitting(true);
     const formData = new FormData(e.currentTarget);
     
     try {
@@ -317,20 +323,27 @@ export const App: React.FC = () => {
       
       await addDoc(collection(db, 'camp_transactions'), newTx);
       setIsFormOpen(false);
+      // Reset form if needed, but since it closes it's mostly for next open
     } catch (error) {
       console.error("Error adding transaction: ", error);
       alert("Помилка при збереженні. Спробуйте ще раз.");
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
   const handleDeleteTransaction = async (id: string) => {
-    if (window.confirm('Ви впевнені, що хочете видалити цей запис?')) {
-      try {
-        await deleteDoc(doc(db, 'camp_transactions', id));
-      } catch (error) {
-        console.error("Error deleting transaction: ", error);
-        alert("Помилка при видаленні. Спробуйте ще раз.");
-      }
+    setDeleteConfirmId(id);
+  };
+
+  const confirmDelete = async () => {
+    if (!deleteConfirmId) return;
+    try {
+      await deleteDoc(doc(db, 'camp_transactions', deleteConfirmId));
+      setDeleteConfirmId(null);
+    } catch (error) {
+      console.error("Error deleting transaction: ", error);
+      alert("Помилка при видаленні. Спробуйте ще раз.");
     }
   };
 
@@ -736,9 +749,28 @@ export const App: React.FC = () => {
 
               <footer className="form-actions">
                 <button type="button" className="btn-secondary-flat" onClick={() => setIsFormOpen(false)}>Скасувати</button>
-                <button type="submit" className={`btn-submit-gradient ${formType}`}>Зберегти транзакцію</button>
+                <button type="submit" className={`btn-submit-gradient ${formType}`} disabled={isSubmitting}>
+                  {isSubmitting ? 'Збереження...' : 'Зберегти транзакцію'}
+                </button>
               </footer>
             </form>
+          </div>
+        </div>
+      )}
+
+      {deleteConfirmId && (
+        <div className="modal-root">
+          <div className="modal-backdrop" onClick={() => setDeleteConfirmId(null)}></div>
+          <div className="modal-box glass-premium confirm-modal animate-in">
+            <div className="confirm-icon-wrapper">
+              <AlertTriangle size={40} className="text-danger" />
+            </div>
+            <h3>Видалити запис?</h3>
+            <p>Ви впевнені, що хочете видалити цю операцію? Цю дію неможливо буде скасувати.</p>
+            <div className="confirm-actions">
+              <button className="btn-secondary-flat" onClick={() => setDeleteConfirmId(null)}>Скасувати</button>
+              <button className="btn-danger-gradient" onClick={confirmDelete}>Так, видалити</button>
+            </div>
           </div>
         </div>
       )}
@@ -1030,7 +1062,19 @@ export const App: React.FC = () => {
         }
         .btn-submit-gradient.income { background: linear-gradient(135deg, var(--success), #059669); }
         .btn-submit-gradient.expense { background: linear-gradient(135deg, var(--danger), #b91c1c); }
-        .btn-submit-gradient:hover { transform: translateY(-2px); box-shadow: 0 10px 20px rgba(0,0,0,0.2); }
+        .btn-submit-gradient:hover:not(:disabled) { transform: translateY(-2px); box-shadow: 0 10px 20px rgba(0,0,0,0.2); }
+        .btn-submit-gradient:disabled { opacity: 0.7; cursor: not-allowed; }
+
+        /* Confirm Modal specific styles */
+        .confirm-modal { max-width: 400px; text-align: center; padding: 3rem 2rem; }
+        .confirm-icon-wrapper { width: 80px; height: 80px; background: rgba(239, 68, 68, 0.1); border-radius: 50%; display: flex; align-items: center; justify-content: center; margin: 0 auto 1.5rem; }
+        .confirm-modal h3 { margin-bottom: 1rem; }
+        .confirm-modal p { color: var(--secondary); line-height: 1.6; margin-bottom: 2rem; }
+        .confirm-actions { display: flex; gap: 1rem; justify-content: center; }
+        .btn-danger-gradient { 
+          background: linear-gradient(135deg, var(--danger), #b91c1c); color: white; border: none; padding: 0.8rem 1.8rem; border-radius: 12px; font-weight: 700; cursor: pointer; transition: all 0.3s;
+        }
+        .btn-danger-gradient:hover { transform: translateY(-2px); box-shadow: 0 8px 20px rgba(239, 68, 68, 0.4); }
 
         @media (max-width: 768px) {
           .app-header { padding: 1.2rem; margin: 1rem 0; flex-direction: column; gap: 1.5rem; text-align: center; }
