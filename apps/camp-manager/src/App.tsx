@@ -327,9 +327,10 @@ export const App: React.FC = () => {
     const formData = new FormData(e.currentTarget);
     
     try {
+      const description = formData.get('description') as string;
       const newTx = {
         type: formType as 'income' | 'expense',
-        description: formData.get('description') as string,
+        description: description.trim() || selectedCategory,
         amount: Number(formData.get('amount')),
         date: Timestamp.fromDate(transactionDate),
         category: selectedCategory,
@@ -661,9 +662,9 @@ export const App: React.FC = () => {
 
               <div className="form-grid">
                 <div className="form-field full">
-                  <label>Опис операції</label>
+                  <label>Опис операції (необов'язково)</label>
                   <div className="input-wrapper">
-                    <input type="text" name="description" required placeholder="Наприклад: Закупівля карематів" />
+                    <input type="text" name="description" placeholder={`Наприклад: ${selectedCategory}`} />
                   </div>
                 </div>
 
