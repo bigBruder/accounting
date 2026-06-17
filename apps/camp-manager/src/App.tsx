@@ -254,6 +254,22 @@ export const App: React.FC = () => {
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
+  // Lock body scroll when modal is open
+  useEffect(() => {
+    const isModalOpen = isFormOpen || !!deleteConfirmId;
+    if (isModalOpen) {
+      document.body.style.overflow = 'hidden';
+      document.body.style.touchAction = 'none';
+    } else {
+      document.body.style.overflow = '';
+      document.body.style.touchAction = '';
+    }
+    return () => {
+      document.body.style.overflow = '';
+      document.body.style.touchAction = '';
+    };
+  }, [isFormOpen, deleteConfirmId]);
+
   const handleAuth = (e: React.FormEvent) => {
     e.preventDefault();
     if (passwordInput === APP_PASSWORD) {
@@ -1093,10 +1109,119 @@ export const App: React.FC = () => {
         }
         .btn-danger-gradient:hover { transform: translateY(-2px); box-shadow: 0 8px 20px rgba(239, 68, 68, 0.4); }
 
+        /* --- Tablet breakpoint --- */
+        @media (max-width: 900px) {
+          .stats-section { grid-template-columns: 1fr; gap: 1.2rem; margin-bottom: 2.5rem; }
+          .stat-card { padding: 1.6rem; border-radius: 22px; }
+          .stat-value { font-size: 1.8rem; }
+          .stat-value.large { font-size: 2.2rem; }
+          .main-content { padding: 1.5rem; border-radius: 24px; }
+          .content-toolbar { flex-direction: column; align-items: stretch; gap: 1rem; }
+          .search-wrapper { min-width: unset; }
+          .btn-primary-gradient { justify-content: center; }
+        }
+
+        /* --- Mobile breakpoint --- */
         @media (max-width: 768px) {
-          .app-header { padding: 1.2rem; margin: 1rem 0; flex-direction: column; gap: 1.5rem; text-align: center; }
-          .modern-table td { padding: 1rem; }
-          .date-dropdown { left: 50%; transform: translateX(-50%) !important; bottom: calc(100% + 10px); }
+          .app-header { 
+            padding: 1rem 1.2rem; margin: 0.8rem 0; flex-direction: column; gap: 1rem; text-align: center; 
+            border-radius: 18px;
+          }
+          .app-header, .dashboard { padding: 0 1rem; }
+          h1 { font-size: 1.4rem; }
+          .subtitle { font-size: 0.8rem; }
+          .header-actions { width: 100%; justify-content: center; }
+          .btn-icon-label { padding: 0.7rem 1rem; font-size: 0.85rem; border-radius: 12px; }
+          .btn-icon-label span { display: none; }
+
+          .stats-section { gap: 1rem; margin-bottom: 2rem; }
+          .stat-card { padding: 1.4rem; border-radius: 20px; }
+          .stat-header { margin-bottom: 1rem; gap: 0.8rem; }
+          .icon-box { width: 42px; height: 42px; border-radius: 12px; }
+          .stat-label { font-size: 0.9rem; }
+          .stat-value { font-size: 1.6rem; }
+          .stat-value.large { font-size: 2rem; }
+
+          .main-content { padding: 1.2rem; border-radius: 20px; }
+          .content-toolbar { flex-direction: column; align-items: stretch; gap: 0.8rem; }
+          .filter-tabs-wrapper { width: 100%; }
+          .tab-pill-container { width: 100%; justify-content: center; }
+          .tab-pill { flex: 1; text-align: center; padding: 0.6rem 0.8rem; font-size: 0.85rem; }
+          .search-wrapper { min-width: unset; width: 100%; }
+          .search-wrapper input { padding: 0.9rem 0.9rem 0.9rem 3.2rem; font-size: 0.9rem; border-radius: 14px; }
+          .btn-primary-gradient { justify-content: center; width: 100%; padding: 1rem; border-radius: 14px; font-size: 0.95rem; }
+
+          .modern-table td { padding: 0.8rem 1rem; font-size: 0.85rem; }
+          .modern-table th { padding: 0.8rem 1rem; font-size: 0.8rem; }
+          .badge-pill { padding: 0.3rem 0.7rem; font-size: 0.8rem; }
+          .tx-amount { font-size: 1rem; }
+
+          /* --- Modal mobile --- */
+          .modal-root { padding: 0; align-items: flex-end; }
+          .modal-box { 
+            max-width: 100%; border-radius: 28px 28px 0 0; 
+            padding: 1.8rem 1.4rem 2rem; 
+            max-height: 92vh; overflow-y: auto;
+            -webkit-overflow-scrolling: touch;
+          }
+          .modal-header { margin-bottom: 1.4rem; }
+          .modal-header h3 { font-size: 1.3rem; }
+          .btn-close { width: 36px; height: 36px; border-radius: 10px; }
+
+          .type-toggle-container { margin-bottom: 1.6rem; border-radius: 14px; }
+          .toggle-btn { padding: 0.7rem; font-size: 0.9rem; gap: 0.5rem; }
+          .sliding-pill { border-radius: 11px; }
+
+          /* --- Form grid single column on mobile --- */
+          .form-grid { grid-template-columns: 1fr; gap: 1.2rem; margin-bottom: 1.8rem; }
+          .form-field.full { grid-column: span 1; }
+          .form-field label { font-size: 0.8rem; margin-bottom: 0.6rem; }
+          .input-wrapper input { padding: 0.9rem 1.1rem; border-radius: 13px; font-size: 0.95rem; }
+          .custom-select-trigger { padding: 0.9rem 1.1rem; border-radius: 13px; }
+          .date-trigger { padding: 0.9rem 1.1rem; border-radius: 13px; }
+
+          .date-dropdown { 
+            position: fixed; bottom: 0; left: 0; right: 0; top: auto;
+            width: 100%; border-radius: 20px 20px 0 0; 
+            padding: 1.5rem; z-index: 1100;
+            transform: none !important;
+            max-height: 70vh; overflow-y: auto;
+          }
+
+          .custom-select-options { 
+            position: fixed; bottom: 0; left: 0; right: 0; top: auto;
+            width: 100%; border-radius: 20px 20px 0 0; 
+            padding: 0.8rem; z-index: 1100;
+            animation: slideUpMobile 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            max-height: 60vh; overflow-y: auto;
+          }
+          @keyframes slideUpMobile { from { transform: translateY(100%); } to { transform: translateY(0); } }
+
+          .party-selector-container { padding: 0.6rem; border-radius: 14px; }
+          .party-type-tabs { gap: 0.4rem; margin-bottom: 0.8rem; }
+          .type-tab { padding: 0.5rem; font-size: 0.75rem; border-radius: 10px; }
+
+          .form-actions { gap: 1rem; }
+          .btn-secondary-flat { font-size: 0.9rem; padding: 0.8rem 1rem; }
+          .btn-submit-gradient { padding: 0.9rem 1.5rem; border-radius: 14px; font-size: 0.9rem; flex: 1; text-align: center; justify-content: center; display: flex; }
+
+          /* --- Confirm modal mobile --- */
+          .confirm-modal { max-width: 100%; border-radius: 28px 28px 0 0; padding: 2rem 1.5rem; }
+          .confirm-icon-wrapper { width: 64px; height: 64px; margin-bottom: 1.2rem; }
+          .confirm-actions { flex-direction: column; gap: 0.8rem; }
+          .confirm-actions button { width: 100%; padding: 1rem; border-radius: 14px; }
+        }
+
+        /* --- Small phone breakpoint --- */
+        @media (max-width: 380px) {
+          .modal-box { padding: 1.4rem 1rem 1.6rem; }
+          .modal-header h3 { font-size: 1.15rem; }
+          .toggle-btn { font-size: 0.82rem; padding: 0.6rem; }
+          .form-field label { font-size: 0.75rem; }
+          .input-wrapper input { padding: 0.8rem 1rem; font-size: 0.9rem; }
+          .stat-value { font-size: 1.4rem; }
+          .stat-value.large { font-size: 1.7rem; }
+          h1 { font-size: 1.2rem; }
         }
       `}</style>
     </div>
