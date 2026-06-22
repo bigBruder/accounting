@@ -73,24 +73,23 @@ const CATEGORIES = [
   { id: 'equipment', label: 'Спорядження', icon: Mountain, color: '#4ade80', type: 'expense' },
   { id: 'medical', label: 'Медикаменти', icon: Stethoscope, color: '#fbbf24', type: 'expense' },
   { id: 'rent', label: 'Оренда', icon: Key, color: '#94a3b8', type: 'expense' },
+  { id: 'package_participant', label: 'Пакунок учасника', icon: Package, color: '#a78bfa', type: 'expense' },
+  { id: 'pkg_housing', label: 'Проживання', icon: Home, color: '#c084fc', type: 'expense' },
+  { id: 'pkg_food', label: 'Їжа', icon: Utensils, color: '#fb923c', type: 'expense' },
+  { id: 'pkg_props', label: 'Реквізит', icon: Paintbrush, color: '#22d3ee', type: 'expense' },
   { id: 'other_exp', label: 'Інші витрати', icon: LayoutGrid, color: '#cbd5e1', type: 'expense' },
-  // Пакунок учасника sub-categories
-  { id: 'pkg_housing', label: 'Проживання', icon: Home, color: '#c084fc', type: 'expense', group: 'package' },
-  { id: 'pkg_food', label: 'Їжа (пакунок)', icon: Utensils, color: '#fb923c', type: 'expense', group: 'package' },
-  { id: 'pkg_props', label: 'Реквізит', icon: Paintbrush, color: '#22d3ee', type: 'expense', group: 'package' },
   // Income
   { id: 'reg_fees', label: 'Реєстраційні внески', icon: CircleDollarSign, color: '#10b981', type: 'income' },
   { id: 'donations', label: 'Донати / Пожертви', icon: Heart, color: '#f472b6', type: 'income' },
   { id: 'grants', label: 'Зовнішня допомога', icon: ArrowDownLeft, color: '#818cf8', type: 'income' },
   { id: 'other_inc', label: 'Інший прихід', icon: LayoutGrid, color: '#94a3b8', type: 'income' },
-] as Array<{ id: string; label: string; icon: any; color: string; type: 'income' | 'expense'; group?: string }>;
+] as Array<{ id: string; label: string; icon: any; color: string; type: 'income' | 'expense' }>;
 
-const PACKAGE_GROUP = {
-  id: 'package',
-  label: 'Пакунок учасника',
-  icon: Package,
-  color: '#a78bfa',
-  items: CATEGORIES.filter(c => c.group === 'package'),
+const getCategoryByLabel = (label: string) => {
+  if (label === 'Їжа (пакунок)' || label === 'Їжа') {
+    return CATEGORIES.find(c => c.id === 'pkg_food') || CATEGORIES[7]; // index of 'pkg_food' is 7
+  }
+  return CATEGORIES.find(c => c.label === label) || CATEGORIES.find(c => c.id === 'other_exp') || CATEGORIES[9]; // index of 'other_exp' is 9
 };
 
 const DatePicker: React.FC<{ value: Date; onChange: (date: Date) => void }> = ({ value, onChange }) => {
@@ -255,7 +254,6 @@ export const App: React.FC = () => {
   const expenseCategories = CATEGORIES.filter(c => c.type === 'expense');
   
   const [selectedCategory, setSelectedCategory] = useState(incomeCategories[0].label);
-  const [isCategoryOpen, setIsCategoryOpen] = useState(false);
 
   // Sync category when type changes (only for new transactions, not edit)
   useEffect(() => {
@@ -263,18 +261,6 @@ export const App: React.FC = () => {
     if (formType === 'income') setSelectedCategory(incomeCategories[0].label);
     else setSelectedCategory(expenseCategories[0].label);
   }, [formType]);
-  
-  const categoryRef = useRef<HTMLDivElement>(null);
-
-  useEffect(() => {
-    const handleClickOutside = (event: MouseEvent) => {
-      if (categoryRef.current && !categoryRef.current.contains(event.target as Node)) {
-        setIsCategoryOpen(false);
-      }
-    };
-    document.addEventListener('mousedown', handleClickOutside);
-    return () => document.removeEventListener('mousedown', handleClickOutside);
-  }, []);
 
   // Lock body scroll when modal is open
   useEffect(() => {
@@ -371,7 +357,6 @@ export const App: React.FC = () => {
     setIsFormOpen(false);
     setIsSubmitting(false);
     setEditingTransaction(null);
-    setIsCategoryOpen(false);
   };
 
   const openEditModal = (tx: Transaction) => {
@@ -380,7 +365,6 @@ export const App: React.FC = () => {
     setSelectedCategory(tx.category);
     setTransactionDate(tx.date);
     setPartyType('person');
-    setIsCategoryOpen(false);
     setIsFormOpen(true);
   };
 
@@ -652,7 +636,7 @@ export const App: React.FC = () => {
               </thead>
               <tbody>
                 {filteredTransactions.map((t, index) => {
-                  const cat = CATEGORIES.find(c => c.label === t.category) || CATEGORIES[7];
+                  const cat = getCategoryByLabel(t.category);
                   const Icon = cat.icon;
                   return (
                     <tr key={t.id} className="row-animate">
@@ -719,7 +703,7 @@ export const App: React.FC = () => {
               </div>
             )}
             {filteredTransactions.map((t) => {
-              const cat = CATEGORIES.find(c => c.label === t.category) || CATEGORIES[7];
+              const cat = getCategoryByLabel(t.category);
               const Icon = cat.icon;
               return (
                 <div key={t.id} className="tx-card glass-flat" onClick={() => openEditModal(t)}>
@@ -804,76 +788,26 @@ export const App: React.FC = () => {
               {/* Category grid */}
               <div className="category-section">
                 <label className="section-label">Категорія</label>
-                <div className="category-icon-grid" ref={categoryRef}>
-                  {(() => {
-                    const regularCats = CATEGORIES.filter(c => c.type === formType && !c.group);
-                    const hasPackageGroup = formType === 'expense';
+                <div className="category-icon-grid">
+                  {CATEGORIES.filter(c => c.type === formType).map(cat => {
+                    const Icon = cat.icon;
+                    const isSelected = selectedCategory === cat.label;
                     return (
-                      <>
-                        {regularCats.map(cat => {
-                          const Icon = cat.icon;
-                          const isSelected = selectedCategory === cat.label;
-                          return (
-                            <button
-                              key={cat.id}
-                              type="button"
-                              className={`cat-grid-item ${isSelected ? 'selected' : ''}`}
-                              onClick={() => setSelectedCategory(cat.label)}
-                              style={{ '--cat-color': cat.color } as React.CSSProperties}
-                            >
-                              <div className="cat-icon-circle">
-                                <Icon size={20} />
-                              </div>
-                              <span className="cat-grid-label">{cat.label}</span>
-                            </button>
-                          );
-                        })}
-                        {hasPackageGroup && (
-                          <button
-                            type="button"
-                            className={`cat-grid-item package-group ${PACKAGE_GROUP.items.some(p => p.label === selectedCategory) ? 'selected' : ''}`}
-                            onClick={() => setIsCategoryOpen(!isCategoryOpen)}
-                            style={{ '--cat-color': PACKAGE_GROUP.color } as React.CSSProperties}
-                          >
-                            <div className="cat-icon-circle">
-                              <Package size={20} />
-                            </div>
-                            <span className="cat-grid-label">{PACKAGE_GROUP.label}</span>
-                            <ChevronDown size={12} className={`pkg-chevron ${isCategoryOpen ? 'open' : ''}`} />
-                          </button>
-                        )}
-                      </>
+                      <button
+                        key={cat.id}
+                        type="button"
+                        className={`cat-grid-item ${isSelected ? 'selected' : ''}`}
+                        onClick={() => setSelectedCategory(cat.label)}
+                        style={{ '--cat-color': cat.color } as React.CSSProperties}
+                      >
+                        <div className="cat-icon-circle">
+                          <Icon size={20} />
+                        </div>
+                        <span className="cat-grid-label">{cat.label}</span>
+                      </button>
                     );
-                  })()}
+                  })}
                 </div>
-
-                {/* Package sub-category dropdown */}
-                {isCategoryOpen && formType === 'expense' && (
-                  <div className="package-subcats animate-subcats">
-                    {PACKAGE_GROUP.items.map(sub => {
-                      const Icon = sub.icon;
-                      const isSelected = selectedCategory === sub.label;
-                      return (
-                        <button
-                          key={sub.id}
-                          type="button"
-                          className={`subcat-item ${isSelected ? 'selected' : ''}`}
-                          onClick={() => {
-                            setSelectedCategory(sub.label);
-                            setIsCategoryOpen(false);
-                          }}
-                          style={{ '--cat-color': sub.color } as React.CSSProperties}
-                        >
-                          <div className="subcat-icon">
-                            <Icon size={16} />
-                          </div>
-                          <span>{sub.label}</span>
-                          {isSelected && <CheckCircle size={16} className="subcat-check" />}
-                        </button>
-                      );
-                    })}
-                  </div>
-                )}
               </div>
 
               {/* Details section */}
@@ -1407,44 +1341,6 @@ export const App: React.FC = () => {
           line-height: 1.2; transition: color 0.2s;
         }
         .cat-grid-item.selected .cat-grid-label { color: var(--cat-color); }
-        .cat-grid-item.package-group { position: relative; }
-        .pkg-chevron {
-          position: absolute; top: 0.5rem; right: 0.5rem; color: var(--secondary); transition: transform 0.3s;
-        }
-        .pkg-chevron.open { transform: rotate(180deg); }
-
-        /* Package sub-categories */
-        .package-subcats {
-          display: flex; gap: 0.5rem; margin-top: 0.8rem; flex-wrap: wrap;
-        }
-        .animate-subcats {
-          animation: expandSubcats 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-        }
-        @keyframes expandSubcats {
-          from { opacity: 0; transform: translateY(-8px); max-height: 0; }
-          to { opacity: 1; transform: translateY(0); max-height: 200px; }
-        }
-        .subcat-item {
-          display: flex; align-items: center; gap: 0.7rem; flex: 1; min-width: 140px;
-          padding: 0.75rem 1rem; border-radius: 14px; cursor: pointer;
-          background: rgba(255,255,255,0.03); border: 1.5px solid rgba(255,255,255,0.06);
-          color: var(--secondary); font-size: 0.85rem; font-weight: 600;
-          transition: all 0.25s;
-        }
-        .subcat-item:hover {
-          background: rgba(255,255,255,0.06); border-color: rgba(255,255,255,0.12);
-        }
-        .subcat-item.selected {
-          background: color-mix(in srgb, var(--cat-color) 12%, transparent);
-          border-color: color-mix(in srgb, var(--cat-color) 35%, transparent);
-          color: var(--cat-color);
-        }
-        .subcat-icon {
-          width: 32px; height: 32px; border-radius: 10px; display: flex; align-items: center; justify-content: center;
-          background: color-mix(in srgb, var(--cat-color) 15%, transparent);
-          color: var(--cat-color); flex-shrink: 0;
-        }
-        .subcat-check { color: var(--cat-color); margin-left: auto; }
 
         /* Details section */
         .details-section { display: flex; flex-direction: column; gap: 1rem; margin-bottom: 1.8rem; }
@@ -1569,10 +1465,6 @@ export const App: React.FC = () => {
           .cat-icon-circle { width: 36px; height: 36px; border-radius: 12px; }
           .cat-icon-circle svg { width: 18px; height: 18px; }
           .cat-grid-label { font-size: 0.65rem; }
-
-          .package-subcats { gap: 0.4rem; }
-          .subcat-item { padding: 0.6rem 0.8rem; font-size: 0.8rem; min-width: 120px; border-radius: 12px; }
-          .subcat-icon { width: 28px; height: 28px; border-radius: 8px; }
 
           .details-section { gap: 0.8rem; margin-bottom: 1.4rem; }
           .form-field label { font-size: 0.78rem; margin-bottom: 0.5rem; }
