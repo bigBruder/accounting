@@ -27,7 +27,14 @@ import {
   Key,
   LayoutGrid,
   LogOut,
-  Trash2
+  Trash2,
+  Package,
+  Home,
+  Paintbrush,
+  Sparkles,
+  ChevronRight,
+  DollarSign,
+  Pencil
 } from 'lucide-react';
 import { format } from 'date-fns';
 import { uk } from 'date-fns/locale';
@@ -36,6 +43,7 @@ import {
   collection, 
   onSnapshot, 
   addDoc, 
+  updateDoc,
   deleteDoc,
   doc,
   query, 
@@ -66,12 +74,24 @@ const CATEGORIES = [
   { id: 'medical', label: 'Медикаменти', icon: Stethoscope, color: '#fbbf24', type: 'expense' },
   { id: 'rent', label: 'Оренда', icon: Key, color: '#94a3b8', type: 'expense' },
   { id: 'other_exp', label: 'Інші витрати', icon: LayoutGrid, color: '#cbd5e1', type: 'expense' },
+  // Пакунок учасника sub-categories
+  { id: 'pkg_housing', label: 'Проживання', icon: Home, color: '#c084fc', type: 'expense', group: 'package' },
+  { id: 'pkg_food', label: 'Їжа (пакунок)', icon: Utensils, color: '#fb923c', type: 'expense', group: 'package' },
+  { id: 'pkg_props', label: 'Реквізит', icon: Paintbrush, color: '#22d3ee', type: 'expense', group: 'package' },
   // Income
   { id: 'reg_fees', label: 'Реєстраційні внески', icon: CircleDollarSign, color: '#10b981', type: 'income' },
   { id: 'donations', label: 'Донати / Пожертви', icon: Heart, color: '#f472b6', type: 'income' },
   { id: 'grants', label: 'Зовнішня допомога', icon: ArrowDownLeft, color: '#818cf8', type: 'income' },
   { id: 'other_inc', label: 'Інший прихід', icon: LayoutGrid, color: '#94a3b8', type: 'income' },
-];
+] as Array<{ id: string; label: string; icon: any; color: string; type: 'income' | 'expense'; group?: string }>;
+
+const PACKAGE_GROUP = {
+  id: 'package',
+  label: 'Пакунок учасника',
+  icon: Package,
+  color: '#a78bfa',
+  items: CATEGORIES.filter(c => c.group === 'package'),
+};
 
 const DatePicker: React.FC<{ value: Date; onChange: (date: Date) => void }> = ({ value, onChange }) => {
   const [isOpen, setIsOpen] = useState(false);
@@ -229,6 +249,7 @@ export const App: React.FC = () => {
   const [partyType, setPartyType] = useState<'person' | 'org'>('person');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [deleteConfirmId, setDeleteConfirmId] = useState<string | null>(null);
+  const [editingTransaction, setEditingTransaction] = useState<Transaction | null>(null);
   
   const incomeCategories = CATEGORIES.filter(c => c.type === 'income');
   const expenseCategories = CATEGORIES.filter(c => c.type === 'expense');
@@ -236,8 +257,9 @@ export const App: React.FC = () => {
   const [selectedCategory, setSelectedCategory] = useState(incomeCategories[0].label);
   const [isCategoryOpen, setIsCategoryOpen] = useState(false);
 
-  // Sync category when type changes
+  // Sync category when type changes (only for new transactions, not edit)
   useEffect(() => {
+    if (editingTransaction) return;
     if (formType === 'income') setSelectedCategory(incomeCategories[0].label);
     else setSelectedCategory(expenseCategories[0].label);
   }, [formType]);
@@ -289,9 +311,24 @@ export const App: React.FC = () => {
   };
 
   const stats = useMemo(() => {
-    const income = transactions.filter(t => t.type === 'income').reduce((sum, t) => sum + t.amount, 0);
-    const expense = transactions.filter(t => t.type === 'expense').reduce((sum, t) => sum + t.amount, 0);
-    return { income, expense, balance: income - expense };
+    const incomeTxs = transactions.filter(t => t.type === 'income');
+    const expenseTxs = transactions.filter(t => t.type === 'expense');
+    const income = incomeTxs.reduce((sum, t) => sum + t.amount, 0);
+    const expense = expenseTxs.reduce((sum, t) => sum + t.amount, 0);
+    
+    // Get unique categories used
+    const getTopCats = (txs: Transaction[]) => {
+      const cats = [...new Set(txs.map(t => t.category))];
+      if (cats.length === 0) return 'Немає записів';
+      if (cats.length <= 2) return cats.join(', ');
+      return `${cats.slice(0, 2).join(', ')} та ін.`;
+    };
+    
+    return { 
+      income, expense, balance: income - expense,
+      incomeCats: getTopCats(incomeTxs),
+      expenseCats: getTopCats(expenseTxs),
+    };
   }, [transactions]);
 
   const filteredTransactions = useMemo(() => 
@@ -333,6 +370,18 @@ export const App: React.FC = () => {
   const closeForm = () => {
     setIsFormOpen(false);
     setIsSubmitting(false);
+    setEditingTransaction(null);
+    setIsCategoryOpen(false);
+  };
+
+  const openEditModal = (tx: Transaction) => {
+    setEditingTransaction(tx);
+    setFormType(tx.type);
+    setSelectedCategory(tx.category);
+    setTransactionDate(tx.date);
+    setPartyType('person');
+    setIsCategoryOpen(false);
+    setIsFormOpen(true);
   };
 
   const addTransaction = async (e: React.FormEvent<HTMLFormElement>) => {
@@ -344,21 +393,28 @@ export const App: React.FC = () => {
     
     try {
       const description = formData.get('description') as string;
-      const newTx = {
+      const txData = {
         type: formType as 'income' | 'expense',
         description: description.trim() || selectedCategory,
         amount: Number(formData.get('amount')),
         date: Timestamp.fromDate(transactionDate),
         category: selectedCategory,
         party: formData.get('party') as string,
-        createdAt: serverTimestamp()
       };
       
-      await addDoc(collection(db, 'camp_transactions'), newTx);
-      setIsFormOpen(false);
-      // Reset form if needed, but since it closes it's mostly for next open
+      if (editingTransaction) {
+        // Update existing
+        await updateDoc(doc(db, 'camp_transactions', editingTransaction.id), txData);
+      } else {
+        // Create new
+        await addDoc(collection(db, 'camp_transactions'), {
+          ...txData,
+          createdAt: serverTimestamp()
+        });
+      }
+      closeForm();
     } catch (error) {
-      console.error("Error adding transaction: ", error);
+      console.error("Error saving transaction: ", error);
       alert("Помилка при збереженні. Спробуйте ще раз.");
     } finally {
       setIsSubmitting(false);
@@ -526,7 +582,7 @@ export const App: React.FC = () => {
               <span className="stat-label">Загальний прихід</span>
             </div>
             <div className="stat-value">{stats.income.toLocaleString()} ₴</div>
-            <div className="stat-footer">Внески та донати</div>
+            <div className="stat-footer">{stats.incomeCats}</div>
           </div>
 
           <div className="stat-card glass-premium">
@@ -537,7 +593,7 @@ export const App: React.FC = () => {
               <span className="stat-label">Загальні витрати</span>
             </div>
             <div className="stat-value text-danger">-{stats.expense.toLocaleString()} ₴</div>
-            <div className="stat-footer">Харчування, логістика тощо</div>
+            <div className="stat-footer">{stats.expenseCats}</div>
           </div>
 
           <div className="stat-card glass-premium main-balance">
@@ -580,7 +636,8 @@ export const App: React.FC = () => {
             </button>
           </div>
 
-          <div className="table-responsive">
+          {/* Desktop table - hidden on mobile */}
+          <div className="table-responsive desktop-only">
             <table className="modern-table">
               <thead>
                 <tr>
@@ -629,19 +686,66 @@ export const App: React.FC = () => {
                         </div>
                       </td>
                       <td className="text-right">
-                        <button 
-                          className="btn-delete-row" 
-                          onClick={() => handleDeleteTransaction(t.id)}
-                          title="Видалити запис"
-                        >
-                          <Trash2 size={16} />
-                        </button>
+                        <div className="row-actions">
+                          <button 
+                            className="btn-edit-row" 
+                            onClick={() => openEditModal(t)}
+                            title="Редагувати"
+                          >
+                            <Pencil size={15} />
+                          </button>
+                          <button 
+                            className="btn-delete-row" 
+                            onClick={() => handleDeleteTransaction(t.id)}
+                            title="Видалити запис"
+                          >
+                            <Trash2 size={15} />
+                          </button>
+                        </div>
                       </td>
                     </tr>
                   );
                 })}
               </tbody>
             </table>
+          </div>
+
+          {/* Mobile card list - hidden on desktop */}
+          <div className="mobile-tx-list mobile-only">
+            {filteredTransactions.length === 0 && (
+              <div className="empty-list">
+                <FileText size={40} className="empty-icon" />
+                <p>Немає записів</p>
+              </div>
+            )}
+            {filteredTransactions.map((t) => {
+              const cat = CATEGORIES.find(c => c.label === t.category) || CATEGORIES[7];
+              const Icon = cat.icon;
+              return (
+                <div key={t.id} className="tx-card glass-flat" onClick={() => openEditModal(t)}>
+                  <div className="tx-card-left">
+                    <div className="tx-card-icon" style={{ background: `${cat.color}18`, color: cat.color }}>
+                      <Icon size={20} />
+                    </div>
+                    <div className="tx-card-info">
+                      <div className="tx-card-title">{t.description}</div>
+                      <div className="tx-card-meta">
+                        <span className="tx-card-category">{t.category}</span>
+                        <span className="tx-card-dot">·</span>
+                        <span>{format(t.date, 'dd MMM', { locale: uk })}</span>
+                      </div>
+                      {t.party && <div className="tx-card-party"><User size={12} /> {t.party}</div>}
+                    </div>
+                  </div>
+                  <div className="tx-card-right">
+                    <div className={`tx-card-amount ${t.type}`}>
+                      {t.type === 'income' ? '+' : '-'}{t.amount.toLocaleString()} ₴
+                    </div>
+                    <ChevronRight size={16} className="tx-card-chevron" />
+                  </div>
+                </div>
+              );
+            })}
           </div>
         </section>
       </main>
@@ -650,14 +754,26 @@ export const App: React.FC = () => {
         <div className="modal-root">
           <div className="modal-backdrop" onClick={closeForm}></div>
           <div className="modal-box glass-premium animate-in">
+            {/* Decorative gradient top bar */}
+            <div className="modal-gradient-bar"></div>
+            
             <header className="modal-header">
-              <h3>Нова операція</h3>
+              <div className="modal-title-row">
+                <div className={`modal-icon-badge ${formType}`}>
+                  {editingTransaction ? <Pencil size={20} /> : (formType === 'income' ? <TrendingUp size={20} /> : <TrendingDown size={20} />)}
+                </div>
+                <div>
+                  <h3>{editingTransaction ? 'Редагування' : 'Нова операція'}</h3>
+                  <p className="modal-subtitle">{editingTransaction ? 'Змініть потрібні поля та збережіть' : (formType === 'income' ? 'Додайте новий прихід коштів' : 'Зафіксуйте нову витрату')}</p>
+                </div>
+              </div>
               <button className="btn-close" onClick={closeForm}>
                 <X size={20} />
               </button>
             </header>
             
             <form onSubmit={addTransaction} className="tx-form">
+              {/* Type toggle - redesigned */}
               <div className="type-toggle-container">
                 <div className={`sliding-pill ${formType}`}></div>
                 <button 
@@ -676,115 +792,175 @@ export const App: React.FC = () => {
                 </button>
               </div>
 
-              <div className="form-grid">
-                <div className="form-field full">
-                  <label>Опис операції (необов'язково)</label>
-                  <div className="input-wrapper">
-                    <input type="text" name="description" placeholder={`Наприклад: ${selectedCategory}`} />
-                  </div>
+              {/* Amount - prominent at the top */}
+              <div className="amount-hero-section">
+                <label className="amount-label"><DollarSign size={14} /> Сума операції</label>
+                <div className="amount-hero-input">
+                  <span className="currency-sign">₴</span>
+                  <input type="number" name="amount" required placeholder="0" min="1" step="0.01" className="amount-big-input" defaultValue={editingTransaction?.amount || ''} key={editingTransaction?.id || 'new-amount'} />
                 </div>
+              </div>
 
-                <div className="form-field">
-                  <label>Сума (₴)</label>
-                  <div className="input-wrapper">
-                    <input type="number" name="amount" required placeholder="0.00" min="1" step="0.01" />
-                  </div>
-                </div>
-
-                <div className="form-field">
-                  <label>Дата операції</label>
-                  <DatePicker value={transactionDate} onChange={setTransactionDate} />
-                </div>
-
-                <div className="form-field" ref={categoryRef}>
-                  <label>Категорія</label>
-                  <div className="custom-select-wrapper">
-                    <button 
-                      type="button" 
-                      className="custom-select-trigger"
-                      onClick={() => setIsCategoryOpen(!isCategoryOpen)}
-                    >
-                      {(() => {
-                        const cat = CATEGORIES.find(c => c.label === selectedCategory) || CATEGORIES[7];
-                        const Icon = cat.icon;
-                        return (
-                          <>
-                            <Icon size={18} style={{ color: cat.color }} />
-                            <span>{selectedCategory}</span>
-                          </>
-                        );
-                      })()}
-                      <ChevronDown size={16} className={`chevron ${isCategoryOpen ? 'open' : ''}`} />
-                    </button>
-                    {isCategoryOpen && (
-                      <div className="custom-select-options glass-premium">
-                        {CATEGORIES.filter(c => c.type === formType).map(cat => (
-                          <div 
-                            key={cat.id} 
-                            className={`select-option ${selectedCategory === cat.label ? 'selected' : ''}`}
-                            onClick={() => {
-                              setSelectedCategory(cat.label);
-                              setIsCategoryOpen(false);
-                            }}
+              {/* Category grid */}
+              <div className="category-section">
+                <label className="section-label">Категорія</label>
+                <div className="category-icon-grid" ref={categoryRef}>
+                  {(() => {
+                    const regularCats = CATEGORIES.filter(c => c.type === formType && !c.group);
+                    const hasPackageGroup = formType === 'expense';
+                    return (
+                      <>
+                        {regularCats.map(cat => {
+                          const Icon = cat.icon;
+                          const isSelected = selectedCategory === cat.label;
+                          return (
+                            <button
+                              key={cat.id}
+                              type="button"
+                              className={`cat-grid-item ${isSelected ? 'selected' : ''}`}
+                              onClick={() => setSelectedCategory(cat.label)}
+                              style={{ '--cat-color': cat.color } as React.CSSProperties}
+                            >
+                              <div className="cat-icon-circle">
+                                <Icon size={20} />
+                              </div>
+                              <span className="cat-grid-label">{cat.label}</span>
+                            </button>
+                          );
+                        })}
+                        {hasPackageGroup && (
+                          <button
+                            type="button"
+                            className={`cat-grid-item package-group ${PACKAGE_GROUP.items.some(p => p.label === selectedCategory) ? 'selected' : ''}`}
+                            onClick={() => setIsCategoryOpen(!isCategoryOpen)}
+                            style={{ '--cat-color': PACKAGE_GROUP.color } as React.CSSProperties}
                           >
-                            <cat.icon size={18} style={{ color: cat.color }} />
-                            <span>{cat.label}</span>
+                            <div className="cat-icon-circle">
+                              <Package size={20} />
+                            </div>
+                            <span className="cat-grid-label">{PACKAGE_GROUP.label}</span>
+                            <ChevronDown size={12} className={`pkg-chevron ${isCategoryOpen ? 'open' : ''}`} />
+                          </button>
+                        )}
+                      </>
+                    );
+                  })()}
+                </div>
+
+                {/* Package sub-category dropdown */}
+                {isCategoryOpen && formType === 'expense' && (
+                  <div className="package-subcats animate-subcats">
+                    {PACKAGE_GROUP.items.map(sub => {
+                      const Icon = sub.icon;
+                      const isSelected = selectedCategory === sub.label;
+                      return (
+                        <button
+                          key={sub.id}
+                          type="button"
+                          className={`subcat-item ${isSelected ? 'selected' : ''}`}
+                          onClick={() => {
+                            setSelectedCategory(sub.label);
+                            setIsCategoryOpen(false);
+                          }}
+                          style={{ '--cat-color': sub.color } as React.CSSProperties}
+                        >
+                          <div className="subcat-icon">
+                            <Icon size={16} />
                           </div>
-                        ))}
-                      </div>
-                    )}
+                          <span>{sub.label}</span>
+                          {isSelected && <CheckCircle size={16} className="subcat-check" />}
+                        </button>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
+
+              {/* Details section */}
+              <div className="details-section">
+                <div className="form-row">
+                  <div className="form-field flex-1">
+                    <label>Опис <span className="optional-tag">необов'язково</span></label>
+                    <div className="input-wrapper">
+                      <input type="text" name="description" placeholder={`Наприклад: ${selectedCategory}`} defaultValue={editingTransaction?.description || ''} key={editingTransaction?.id || 'new-desc'} />
+                    </div>
                   </div>
                 </div>
 
-                <div className="form-field">
-                  <label>{formType === 'income' ? 'Джерело коштів' : 'Отримувач платежу'}</label>
-                  {formType === 'income' ? (
-                    <div className="input-wrapper">
-                      <User size={16} className="field-icon" />
-                      <input 
-                        type="text" 
-                        name="party" 
-                        required 
-                        placeholder="ПІБ особи або назва організації" 
-                      />
-                    </div>
-                  ) : (
-                    <div className="party-selector-container glass-flat">
-                      <div className="party-type-tabs">
-                        <button 
-                          type="button" 
-                          className={`type-tab ${partyType === 'person' ? 'active' : ''}`}
-                          onClick={() => setPartyType('person')}
-                        >
-                          Приватна особа
-                        </button>
-                        <button 
-                          type="button" 
-                          className={`type-tab ${partyType === 'org' ? 'active' : ''}`}
-                          onClick={() => setPartyType('org')}
-                        >
-                          Магазин / Заклад
-                        </button>
-                      </div>
+                <div className="form-row">
+                  <div className="form-field flex-1">
+                    <label>Дата операції</label>
+                    <DatePicker value={transactionDate} onChange={setTransactionDate} />
+                  </div>
+                </div>
+
+                <div className="form-row">
+                  <div className="form-field flex-1">
+                    <label>{formType === 'income' ? 'Джерело коштів' : 'Отримувач платежу'}</label>
+                    {formType === 'income' ? (
                       <div className="input-wrapper">
-                        {partyType === 'person' ? <User size={16} className="field-icon" /> : <Truck size={16} className="field-icon" />}
+                        <User size={16} className="field-icon" />
                         <input 
                           type="text" 
                           name="party" 
                           required 
-                          placeholder={partyType === 'person' ? "ПІБ отримувача" : "Назва магазину (н-р: Епіцентр)"} 
+                          placeholder="ПІБ особи або назва організації" 
+                          defaultValue={editingTransaction?.party || ''}
+                          key={editingTransaction?.id || 'new-party-income'}
                         />
                       </div>
-                    </div>
-                  )}
+                    ) : (
+                      <div className="party-selector-container glass-flat">
+                        <div className="party-type-tabs">
+                          <button 
+                            type="button" 
+                            className={`type-tab ${partyType === 'person' ? 'active' : ''}`}
+                            onClick={() => setPartyType('person')}
+                          >
+                            <User size={14} /> Приватна особа
+                          </button>
+                          <button 
+                            type="button" 
+                            className={`type-tab ${partyType === 'org' ? 'active' : ''}`}
+                            onClick={() => setPartyType('org')}
+                          >
+                            <Truck size={14} /> Магазин / Заклад
+                          </button>
+                        </div>
+                        <div className="input-wrapper">
+                          {partyType === 'person' ? <User size={16} className="field-icon" /> : <Truck size={16} className="field-icon" />}
+                          <input 
+                            type="text" 
+                            name="party" 
+                            required 
+                            placeholder={partyType === 'person' ? "ПІБ отримувача" : "Назва магазину (н-р: Епіцентр)"}
+                            defaultValue={editingTransaction?.party || ''}
+                            key={editingTransaction?.id || 'new-party-expense'}
+                          />
+                        </div>
+                      </div>
+                    )}
+                  </div>
                 </div>
               </div>
 
               <footer className="form-actions">
-                <button type="button" className="btn-secondary-flat" onClick={closeForm}>Скасувати</button>
-                <button type="submit" className={`btn-submit-gradient ${formType}`} disabled={isSubmitting}>
-                  {isSubmitting ? 'Збереження...' : 'Зберегти транзакцію'}
-                </button>
+                {editingTransaction && (
+                  <button 
+                    type="button" 
+                    className="btn-delete-modal" 
+                    onClick={() => { closeForm(); handleDeleteTransaction(editingTransaction.id); }}
+                  >
+                    <Trash2 size={16} /> Видалити
+                  </button>
+                )}
+                <div className="form-actions-right">
+                  <button type="button" className="btn-cancel-pill" onClick={closeForm}>Скасувати</button>
+                  <button type="submit" className={`btn-submit-gradient ${formType}`} disabled={isSubmitting}>
+                    <Sparkles size={18} />
+                    {isSubmitting ? 'Збереження...' : (editingTransaction ? 'Оновити' : 'Зберегти транзакцію')}
+                  </button>
+                </div>
               </footer>
             </form>
           </div>
@@ -967,19 +1143,24 @@ export const App: React.FC = () => {
         .badge-pill { display: flex; align-items: center; gap: 0.6rem; background: rgba(255,255,255,0.04); padding: 0.4rem 1rem; border-radius: 100px; color: var(--secondary); font-size: 0.95rem; font-weight: 500; border: 1px solid rgba(255,255,255,0.05); width: fit-content; }
         .row-number { font-family: 'JetBrains Mono', monospace; font-size: 0.8rem; color: var(--secondary); opacity: 0.6; }
         .tx-amount { font-family: 'JetBrains Mono', monospace; font-size: 1.15rem; font-weight: 700; }
-
-        .btn-delete-row {
-          background: rgba(239, 68, 68, 0.1);
-          border: 1px solid rgba(239, 68, 68, 0.1);
-          color: var(--danger);
-          padding: 0.6rem;
+        .row-actions { display: flex; gap: 0.5rem; justify-content: flex-end; }
+        .btn-edit-row, .btn-delete-row {
+          background: rgba(255, 255, 255, 0.05);
+          border: 1px solid rgba(255, 255, 255, 0.06);
+          color: var(--secondary);
+          padding: 0.55rem;
           border-radius: 10px;
           cursor: pointer;
           transition: all 0.2s;
           display: flex;
           align-items: center;
           justify-content: center;
-          margin-left: auto;
+        }
+        .btn-edit-row:hover {
+          background: rgba(99, 102, 241, 0.15);
+          color: var(--primary);
+          border-color: rgba(99, 102, 241, 0.2);
+          transform: scale(1.1);
         }
         .btn-delete-row:hover {
           background: var(--danger);
@@ -987,6 +1168,50 @@ export const App: React.FC = () => {
           transform: scale(1.1);
           box-shadow: 0 4px 12px rgba(239, 68, 68, 0.3);
         }
+
+        /* Mobile card list */
+        .mobile-only { display: none; }
+        .desktop-only { display: block; }
+        .mobile-tx-list { display: flex; flex-direction: column; gap: 0.6rem; }
+        .tx-card {
+          display: flex; align-items: center; justify-content: space-between;
+          padding: 1rem 1.2rem; border-radius: 18px; cursor: pointer;
+          transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+          gap: 0.8rem;
+        }
+        .tx-card:hover { background: rgba(255,255,255,0.06); transform: translateX(4px); }
+        .tx-card:active { transform: scale(0.98); }
+        .tx-card-left { display: flex; align-items: center; gap: 0.9rem; flex: 1; min-width: 0; }
+        .tx-card-icon {
+          width: 44px; height: 44px; border-radius: 14px; display: flex; align-items: center; justify-content: center;
+          flex-shrink: 0;
+        }
+        .tx-card-info { flex: 1; min-width: 0; }
+        .tx-card-title { font-weight: 700; font-size: 0.95rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        .tx-card-meta { display: flex; align-items: center; gap: 0.4rem; font-size: 0.78rem; color: var(--secondary); margin-top: 0.2rem; }
+        .tx-card-category { font-weight: 600; }
+        .tx-card-dot { opacity: 0.4; }
+        .tx-card-party { display: flex; align-items: center; gap: 0.3rem; font-size: 0.72rem; color: var(--secondary); margin-top: 0.15rem; opacity: 0.7; }
+        .tx-card-right { display: flex; align-items: center; gap: 0.5rem; flex-shrink: 0; }
+        .tx-card-amount { font-family: 'JetBrains Mono', monospace; font-weight: 700; font-size: 1rem; white-space: nowrap; }
+        .tx-card-amount.income { color: var(--success); }
+        .tx-card-amount.expense { color: var(--danger); }
+        .tx-card-chevron { color: var(--secondary); opacity: 0.4; flex-shrink: 0; }
+
+        .empty-list { text-align: center; padding: 3rem 1rem; }
+        .empty-icon { color: var(--secondary); opacity: 0.3; margin-bottom: 0.8rem; }
+        .empty-list p { color: var(--secondary); font-size: 0.9rem; }
+
+        /* Modal footer with delete */
+        .form-actions { display: flex; justify-content: space-between; gap: 1rem; align-items: center; }
+        .form-actions-right { display: flex; gap: 0.8rem; align-items: center; margin-left: auto; }
+        .btn-delete-modal {
+          display: flex; align-items: center; gap: 0.5rem;
+          background: rgba(239, 68, 68, 0.08); border: 1px solid rgba(239, 68, 68, 0.15);
+          color: var(--danger); padding: 0.7rem 1.2rem; border-radius: 12px;
+          font-size: 0.85rem; font-weight: 600; cursor: pointer; transition: all 0.25s;
+        }
+        .btn-delete-modal:hover { background: rgba(239, 68, 68, 0.15); border-color: rgba(239, 68, 68, 0.3); }
 
         /* Custom Selector */
         .custom-select-wrapper { position: relative; width: 100%; }
@@ -1064,38 +1289,188 @@ export const App: React.FC = () => {
         }
         .modal-backdrop { 
           position: absolute; top: 0; left: 0; width: 100%; height: 100%; 
-          background: rgba(2, 6, 23, 0.7); backdrop-filter: blur(8px); 
+          background: rgba(2, 6, 23, 0.75); backdrop-filter: blur(12px); 
+          animation: fadeIn 0.25s ease;
         }
+        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
         .modal-box { 
-          position: relative; z-index: 1001; width: 100%; max-width: 650px; 
-          padding: 2.5rem; border-radius: 40px; overflow: hidden;
+          position: relative; z-index: 1001; width: 100%; max-width: 560px; 
+          padding: 0; border-radius: 32px; overflow: hidden;
         }
-        .modal-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 2rem; }
-        .modal-header h3 { font-size: 1.6rem; font-weight: 800; margin: 0; }
-        .btn-close { background: rgba(255,255,255,0.05); border: none; color: var(--secondary); width: 40px; height: 40px; border-radius: 12px; cursor: pointer; display: flex; align-items: center; justify-content: center; transition: all 0.2s; }
+        .modal-gradient-bar {
+          height: 4px;
+          background: linear-gradient(90deg, var(--primary), #a855f7, #ec4899, var(--warning));
+          background-size: 300% 100%;
+          animation: gradientShift 4s ease infinite;
+        }
+        @keyframes gradientShift {
+          0%, 100% { background-position: 0% 50%; }
+          50% { background-position: 100% 50%; }
+        }
+
+        .modal-header { 
+          display: flex; justify-content: space-between; align-items: flex-start; 
+          padding: 1.8rem 2rem 0;
+        }
+        .modal-title-row { display: flex; align-items: center; gap: 1rem; }
+        .modal-icon-badge {
+          width: 44px; height: 44px; border-radius: 14px; display: flex; align-items: center; justify-content: center;
+          flex-shrink: 0;
+        }
+        .modal-icon-badge.income { background: rgba(16, 185, 129, 0.15); color: var(--success); }
+        .modal-icon-badge.expense { background: rgba(239, 68, 68, 0.15); color: var(--danger); }
+        .modal-header h3 { font-size: 1.35rem; font-weight: 800; margin: 0; letter-spacing: -0.02em; }
+        .modal-subtitle { font-size: 0.82rem; color: var(--secondary); margin: 0.2rem 0 0; }
+        .btn-close { 
+          background: rgba(255,255,255,0.05); border: none; color: var(--secondary); 
+          width: 38px; height: 38px; border-radius: 12px; cursor: pointer; 
+          display: flex; align-items: center; justify-content: center; transition: all 0.2s;
+          flex-shrink: 0;
+        }
         .btn-close:hover { background: rgba(239, 68, 68, 0.15); color: var(--danger); transform: rotate(90deg); }
 
-        .tx-form { display: flex; flex-direction: column; }
-        .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem; margin-bottom: 2.5rem; }
-        .form-field.full { grid-column: span 2; }
-        .form-field label { display: block; font-size: 0.85rem; font-weight: 600; color: var(--secondary); margin-bottom: 0.8rem; padding-left: 0.4rem; }
+        .tx-form { display: flex; flex-direction: column; padding: 1.5rem 2rem 2rem; }
+        
+        /* Type toggle */
+        .form-field label { display: block; font-size: 0.82rem; font-weight: 600; color: var(--secondary); margin-bottom: 0.7rem; padding-left: 0.2rem; }
         .input-wrapper { position: relative; width: 100%; }
         .input-wrapper input { 
-          width: 100%; background: rgba(15, 23, 42, 0.4); border: 1px solid var(--glass-border); 
-          padding: 1rem 1.4rem; border-radius: 15px; color: white; transition: all 0.3s;
+          width: 100%; background: rgba(15, 23, 42, 0.5); border: 1px solid var(--glass-border); 
+          padding: 0.9rem 1.2rem; border-radius: 14px; color: white; transition: all 0.3s; font-size: 0.95rem;
         }
-        .input-wrapper input:focus { border-color: var(--primary); outline: none; }
+        .input-wrapper input:focus { border-color: var(--primary); outline: none; box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.15); }
         .field-icon { position: absolute; right: 1.2rem; top: 50%; transform: translateY(-50%); color: var(--secondary); pointer-events: none; }
 
-        .form-actions { display: flex; justify-content: flex-end; gap: 1.2rem; }
-        .btn-secondary-flat { background: transparent; border: none; color: var(--secondary); font-weight: 600; cursor: pointer; transition: color 0.2s; }
-        .btn-secondary-flat:hover { color: white; }
-        .btn-submit-gradient { 
-          padding: 1rem 2rem; border-radius: 16px; border: none; font-weight: 700; color: white; cursor: pointer; transition: all 0.3s;
+        /* Amount hero */
+        .amount-hero-section {
+          background: rgba(15, 23, 42, 0.4);
+          border: 1px solid var(--glass-border);
+          border-radius: 20px;
+          padding: 1.2rem 1.4rem;
+          margin-bottom: 1.5rem;
         }
-        .btn-submit-gradient.income { background: linear-gradient(135deg, var(--success), #059669); }
-        .btn-submit-gradient.expense { background: linear-gradient(135deg, var(--danger), #b91c1c); }
-        .btn-submit-gradient:hover:not(:disabled) { transform: translateY(-2px); box-shadow: 0 10px 20px rgba(0,0,0,0.2); }
+        .amount-label {
+          display: flex; align-items: center; gap: 0.5rem;
+          font-size: 0.8rem; font-weight: 600; color: var(--secondary); margin-bottom: 0.8rem;
+        }
+        .amount-hero-input {
+          display: flex; align-items: center; gap: 0.6rem;
+        }
+        .currency-sign {
+          font-size: 2rem; font-weight: 800; color: var(--secondary); opacity: 0.5;
+        }
+        .amount-big-input {
+          flex: 1; background: transparent !important; border: none !important;
+          font-size: 2.4rem !important; font-weight: 800 !important; color: white; 
+          padding: 0 !important; outline: none;
+          font-variant-numeric: tabular-nums;
+        }
+        .amount-big-input::placeholder { color: rgba(255,255,255,0.15); }
+        .amount-big-input:focus { box-shadow: none !important; }
+
+        /* Category grid */
+        .category-section { margin-bottom: 1.5rem; }
+        .section-label {
+          display: block; font-size: 0.82rem; font-weight: 600; color: var(--secondary); 
+          margin-bottom: 0.8rem; padding-left: 0.2rem;
+        }
+        .category-icon-grid {
+          display: grid; grid-template-columns: repeat(auto-fill, minmax(95px, 1fr)); gap: 0.6rem;
+        }
+        .cat-grid-item {
+          display: flex; flex-direction: column; align-items: center; gap: 0.5rem;
+          padding: 0.9rem 0.4rem; border-radius: 16px; cursor: pointer;
+          background: rgba(255,255,255,0.03); border: 1.5px solid transparent;
+          transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1); position: relative;
+        }
+        .cat-grid-item:hover {
+          background: rgba(255,255,255,0.06); border-color: rgba(255,255,255,0.1);
+          transform: translateY(-2px);
+        }
+        .cat-grid-item.selected {
+          background: color-mix(in srgb, var(--cat-color) 12%, transparent);
+          border-color: color-mix(in srgb, var(--cat-color) 40%, transparent);
+          box-shadow: 0 4px 16px color-mix(in srgb, var(--cat-color) 20%, transparent);
+        }
+        .cat-icon-circle {
+          width: 42px; height: 42px; border-radius: 14px; display: flex; align-items: center; justify-content: center;
+          background: color-mix(in srgb, var(--cat-color) 12%, transparent);
+          color: var(--cat-color);
+          transition: all 0.25s;
+        }
+        .cat-grid-item.selected .cat-icon-circle {
+          background: color-mix(in srgb, var(--cat-color) 22%, transparent);
+          box-shadow: 0 0 16px color-mix(in srgb, var(--cat-color) 25%, transparent);
+        }
+        .cat-grid-label {
+          font-size: 0.72rem; font-weight: 600; color: var(--secondary); text-align: center;
+          line-height: 1.2; transition: color 0.2s;
+        }
+        .cat-grid-item.selected .cat-grid-label { color: var(--cat-color); }
+        .cat-grid-item.package-group { position: relative; }
+        .pkg-chevron {
+          position: absolute; top: 0.5rem; right: 0.5rem; color: var(--secondary); transition: transform 0.3s;
+        }
+        .pkg-chevron.open { transform: rotate(180deg); }
+
+        /* Package sub-categories */
+        .package-subcats {
+          display: flex; gap: 0.5rem; margin-top: 0.8rem; flex-wrap: wrap;
+        }
+        .animate-subcats {
+          animation: expandSubcats 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        @keyframes expandSubcats {
+          from { opacity: 0; transform: translateY(-8px); max-height: 0; }
+          to { opacity: 1; transform: translateY(0); max-height: 200px; }
+        }
+        .subcat-item {
+          display: flex; align-items: center; gap: 0.7rem; flex: 1; min-width: 140px;
+          padding: 0.75rem 1rem; border-radius: 14px; cursor: pointer;
+          background: rgba(255,255,255,0.03); border: 1.5px solid rgba(255,255,255,0.06);
+          color: var(--secondary); font-size: 0.85rem; font-weight: 600;
+          transition: all 0.25s;
+        }
+        .subcat-item:hover {
+          background: rgba(255,255,255,0.06); border-color: rgba(255,255,255,0.12);
+        }
+        .subcat-item.selected {
+          background: color-mix(in srgb, var(--cat-color) 12%, transparent);
+          border-color: color-mix(in srgb, var(--cat-color) 35%, transparent);
+          color: var(--cat-color);
+        }
+        .subcat-icon {
+          width: 32px; height: 32px; border-radius: 10px; display: flex; align-items: center; justify-content: center;
+          background: color-mix(in srgb, var(--cat-color) 15%, transparent);
+          color: var(--cat-color); flex-shrink: 0;
+        }
+        .subcat-check { color: var(--cat-color); margin-left: auto; }
+
+        /* Details section */
+        .details-section { display: flex; flex-direction: column; gap: 1rem; margin-bottom: 1.8rem; }
+        .form-row { display: flex; gap: 1rem; }
+        .flex-1 { flex: 1; }
+        .optional-tag {
+          font-size: 0.7rem; font-weight: 500; color: rgba(148, 163, 184, 0.6);
+          background: rgba(148, 163, 184, 0.08); padding: 0.15rem 0.5rem; border-radius: 6px;
+          margin-left: 0.5rem; vertical-align: middle;
+        }
+
+        .form-actions { display: flex; justify-content: flex-end; gap: 1rem; align-items: center; }
+        .btn-cancel-pill { 
+          background: rgba(255,255,255,0.05); border: 1px solid var(--glass-border); 
+          color: var(--secondary); font-weight: 600; cursor: pointer; transition: all 0.25s;
+          padding: 0.85rem 1.6rem; border-radius: 14px; font-size: 0.9rem;
+        }
+        .btn-cancel-pill:hover { background: rgba(255,255,255,0.1); color: white; border-color: rgba(255,255,255,0.2); }
+        .btn-submit-gradient { 
+          padding: 0.85rem 1.8rem; border-radius: 14px; border: none; font-weight: 700; color: white; 
+          cursor: pointer; transition: all 0.3s; display: flex; align-items: center; gap: 0.6rem;
+          font-size: 0.95rem;
+        }
+        .btn-submit-gradient.income { background: linear-gradient(135deg, var(--success), #059669); box-shadow: 0 4px 16px rgba(16, 185, 129, 0.3); }
+        .btn-submit-gradient.expense { background: linear-gradient(135deg, var(--danger), #b91c1c); box-shadow: 0 4px 16px rgba(239, 68, 68, 0.3); }
+        .btn-submit-gradient:hover:not(:disabled) { transform: translateY(-2px); box-shadow: 0 10px 24px rgba(0,0,0,0.25); }
         .btn-submit-gradient:disabled { opacity: 0.7; cursor: not-allowed; }
 
         /* Confirm Modal specific styles */
@@ -1156,29 +1531,53 @@ export const App: React.FC = () => {
           .badge-pill { padding: 0.3rem 0.7rem; font-size: 0.8rem; }
           .tx-amount { font-size: 1rem; }
 
+          /* Show cards, hide table on mobile */
+          .desktop-only { display: none !important; }
+          .mobile-only { display: block !important; }
+
+          .tx-card { padding: 0.85rem 1rem; border-radius: 16px; }
+          .tx-card-icon { width: 40px; height: 40px; border-radius: 12px; }
+          .tx-card-title { font-size: 0.9rem; }
+          .tx-card-amount { font-size: 0.95rem; }
+
           /* --- Modal mobile --- */
           .modal-root { padding: 0; align-items: flex-end; }
           .modal-box { 
-            max-width: 100%; border-radius: 28px 28px 0 0; 
-            padding: 1.8rem 1.4rem 2rem; 
-            max-height: 92vh; overflow-y: auto;
+            max-width: 100%; border-radius: 24px 24px 0 0; 
+            max-height: 94vh; overflow-y: auto;
             -webkit-overflow-scrolling: touch;
           }
-          .modal-header { margin-bottom: 1.4rem; }
-          .modal-header h3 { font-size: 1.3rem; }
-          .btn-close { width: 36px; height: 36px; border-radius: 10px; }
+          .modal-gradient-bar { border-radius: 0; }
+          .modal-header { padding: 1.4rem 1.4rem 0; }
+          .modal-header h3 { font-size: 1.2rem; }
+          .modal-subtitle { font-size: 0.78rem; }
+          .modal-icon-badge { width: 38px; height: 38px; border-radius: 12px; }
+          .btn-close { width: 34px; height: 34px; border-radius: 10px; }
 
-          .type-toggle-container { margin-bottom: 1.6rem; border-radius: 14px; }
-          .toggle-btn { padding: 0.7rem; font-size: 0.9rem; gap: 0.5rem; }
+          .tx-form { padding: 1.2rem 1.4rem 1.6rem; }
+
+          .type-toggle-container { margin-bottom: 1.2rem; border-radius: 14px; }
+          .toggle-btn { padding: 0.7rem; font-size: 0.85rem; gap: 0.4rem; }
           .sliding-pill { border-radius: 11px; }
 
-          /* --- Form grid single column on mobile --- */
-          .form-grid { grid-template-columns: 1fr; gap: 1.2rem; margin-bottom: 1.8rem; }
-          .form-field.full { grid-column: span 1; }
-          .form-field label { font-size: 0.8rem; margin-bottom: 0.6rem; }
-          .input-wrapper input { padding: 0.9rem 1.1rem; border-radius: 13px; font-size: 0.95rem; }
-          .custom-select-trigger { padding: 0.9rem 1.1rem; border-radius: 13px; }
-          .date-trigger { padding: 0.9rem 1.1rem; border-radius: 13px; }
+          .amount-hero-section { padding: 1rem; border-radius: 16px; margin-bottom: 1.2rem; }
+          .amount-big-input { font-size: 1.8rem !important; }
+          .currency-sign { font-size: 1.6rem; }
+
+          .category-icon-grid { grid-template-columns: repeat(auto-fill, minmax(80px, 1fr)); gap: 0.5rem; }
+          .cat-grid-item { padding: 0.7rem 0.3rem; border-radius: 14px; }
+          .cat-icon-circle { width: 36px; height: 36px; border-radius: 12px; }
+          .cat-icon-circle svg { width: 18px; height: 18px; }
+          .cat-grid-label { font-size: 0.65rem; }
+
+          .package-subcats { gap: 0.4rem; }
+          .subcat-item { padding: 0.6rem 0.8rem; font-size: 0.8rem; min-width: 120px; border-radius: 12px; }
+          .subcat-icon { width: 28px; height: 28px; border-radius: 8px; }
+
+          .details-section { gap: 0.8rem; margin-bottom: 1.4rem; }
+          .form-field label { font-size: 0.78rem; margin-bottom: 0.5rem; }
+          .input-wrapper input { padding: 0.85rem 1rem; border-radius: 12px; font-size: 0.9rem; }
+          .date-trigger { padding: 0.85rem 1rem; border-radius: 12px; }
 
           .date-dropdown { 
             position: fixed; bottom: 0; left: 0; right: 0; top: auto;
@@ -1188,25 +1587,18 @@ export const App: React.FC = () => {
             max-height: 70vh; overflow-y: auto;
           }
 
-          .custom-select-options { 
-            position: fixed; bottom: 0; left: 0; right: 0; top: auto;
-            width: 100%; border-radius: 20px 20px 0 0; 
-            padding: 0.8rem; z-index: 1100;
-            animation: slideUpMobile 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-            max-height: 60vh; overflow-y: auto;
-          }
-          @keyframes slideUpMobile { from { transform: translateY(100%); } to { transform: translateY(0); } }
-
           .party-selector-container { padding: 0.6rem; border-radius: 14px; }
-          .party-type-tabs { gap: 0.4rem; margin-bottom: 0.8rem; }
+          .party-type-tabs { gap: 0.4rem; margin-bottom: 0.7rem; }
           .type-tab { padding: 0.5rem; font-size: 0.75rem; border-radius: 10px; }
 
-          .form-actions { gap: 1rem; }
-          .btn-secondary-flat { font-size: 0.9rem; padding: 0.8rem 1rem; }
-          .btn-submit-gradient { padding: 0.9rem 1.5rem; border-radius: 14px; font-size: 0.9rem; flex: 1; text-align: center; justify-content: center; display: flex; }
+          .form-actions { flex-wrap: wrap; gap: 0.6rem; }
+          .btn-delete-modal { flex: 1; min-width: 100%; justify-content: center; order: 3; font-size: 0.82rem; padding: 0.65rem; }
+          .form-actions-right { flex: 1; gap: 0.6rem; }
+          .btn-cancel-pill { padding: 0.75rem 1.2rem; font-size: 0.85rem; border-radius: 12px; }
+          .btn-submit-gradient { padding: 0.8rem 1.4rem; border-radius: 12px; font-size: 0.85rem; flex: 1; justify-content: center; }
 
           /* --- Confirm modal mobile --- */
-          .confirm-modal { max-width: 100%; border-radius: 28px 28px 0 0; padding: 2rem 1.5rem; }
+          .confirm-modal { max-width: 100%; border-radius: 24px 24px 0 0; padding: 2rem 1.5rem; }
           .confirm-icon-wrapper { width: 64px; height: 64px; margin-bottom: 1.2rem; }
           .confirm-actions { flex-direction: column; gap: 0.8rem; }
           .confirm-actions button { width: 100%; padding: 1rem; border-radius: 14px; }
