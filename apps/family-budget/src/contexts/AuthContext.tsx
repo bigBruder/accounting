@@ -50,35 +50,46 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       setUser(currentUser);
       
       if (currentUser) {
-        const userDocRef = doc(db, 'users', currentUser.uid);
-        const userDoc = await getDoc(userDocRef);
-        
-        if (userDoc.exists()) {
-          const data = userDoc.data();
-          setFamilyId(data.familyId);
-          setMonobankToken(data.monobankToken || null);
-          setProfile({
-            displayName: data.displayName || currentUser.displayName || '',
-            avatarEmoji: data.avatarEmoji || '🐈‍⬛',
-            currency: data.currency || 'UAH',
-            monthlyBudget: data.monthlyBudget || 0,
-            monoClientName: data.monoClientName || '',
-          });
-        } else {
-          const newFamilyId = currentUser.uid;
-          await setDoc(userDocRef, {
-            email: currentUser.email,
-            familyId: newFamilyId,
-            createdAt: Date.now(),
-            monobankToken: '',
-            displayName: currentUser.displayName || '',
-            avatarEmoji: '🐈‍⬛',
-            currency: 'UAH',
-            monthlyBudget: 0,
-            monoClientName: '',
-          });
-          setFamilyId(newFamilyId);
-          setMonobankToken('');
+        try {
+          const userDocRef = doc(db, 'users', currentUser.uid);
+          const userDoc = await getDoc(userDocRef);
+          
+          if (userDoc.exists()) {
+            const data = userDoc.data();
+            setFamilyId(data.familyId);
+            setMonobankToken(data.monobankToken || null);
+            setProfile({
+              displayName: data.displayName || currentUser.displayName || '',
+              avatarEmoji: data.avatarEmoji || '🐈‍⬛',
+              currency: data.currency || 'UAH',
+              monthlyBudget: data.monthlyBudget || 0,
+              monoClientName: data.monoClientName || '',
+            });
+          } else {
+            const newFamilyId = currentUser.uid;
+            await setDoc(userDocRef, {
+              email: currentUser.email,
+              familyId: newFamilyId,
+              createdAt: Date.now(),
+              monobankToken: '',
+              displayName: currentUser.displayName || '',
+              avatarEmoji: '🐈‍⬛',
+              currency: 'UAH',
+              monthlyBudget: 0,
+              monoClientName: '',
+            });
+            setFamilyId(newFamilyId);
+            setMonobankToken('');
+          }
+        } catch (error) {
+          console.error('Firestore auth error:', error);
+          // Sign out the user so they can re-authenticate
+          // This prevents a blank screen when Firestore rules block access
+          await signOut(auth);
+          setUser(null);
+          setFamilyId(null);
+          setMonobankToken(null);
+          setProfile(defaultProfile);
         }
       } else {
         setFamilyId(null);
