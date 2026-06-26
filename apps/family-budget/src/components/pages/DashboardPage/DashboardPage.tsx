@@ -119,6 +119,34 @@ export const DashboardPage: React.FC = () => {
             />
           </div>
         </div>
+        {/* Account filter chips */}
+        {(() => {
+          const accounts = Array.from(new Set(transactions.map(tx => tx.accountId).filter(Boolean)))
+            .map(accountId => {
+              const tx = transactions.find(t => t.accountId === accountId);
+              return { id: accountId!, name: tx?.accountName || accountId! };
+            });
+          if (accounts.length <= 1) return null;
+          return (
+            <div className="member-chips" style={{ marginTop: 'var(--space-2)' }}>
+              <button
+                className={`member-chip ${!filters.accountId ? 'member-chip--active' : ''}`}
+                onClick={() => setFilters(prev => ({ ...prev, accountId: undefined }))}
+              >
+                {t('common.allAccounts', { defaultValue: 'Всі рахунки' })}
+              </button>
+              {accounts.map(acc => (
+                <button
+                  key={acc.id}
+                  className={`member-chip ${filters.accountId === acc.id ? 'member-chip--active' : ''}`}
+                  onClick={() => setFilters(prev => ({ ...prev, accountId: acc.id }))}
+                >
+                  💳 {acc.name}
+                </button>
+              ))}
+            </div>
+          );
+        })()}
       </div>
       
       {/* 1. TOP: Transactions + Category Breakdown */}
