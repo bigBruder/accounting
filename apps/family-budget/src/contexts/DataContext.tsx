@@ -143,6 +143,8 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
         createdBy: string;
         createdByName: string;
         rawAmount: number; // original signed amount in kopecks for transfer matching
+        accountId: string; // Monobank account ID
+        accountName: string; // Human-readable account name
       }
 
       const pendingTransactions: PendingTransaction[] = [];
@@ -153,6 +155,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
           for (const account of clientInfo.accounts) {
             const monoTxs = await MonobankService.getStatement(token, account.id, thirtyDaysAgo);
+            const accountName = MonobankService.getAccountDisplayName(account);
 
             for (const tx of monoTxs) {
               if (existingExternalIds.has(tx.id)) continue;
@@ -173,6 +176,8 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
                 createdBy: ownerUid,
                 createdByName: clientInfo.name || ownerName,
                 rawAmount: tx.amount,
+                accountId: account.id,
+                accountName: accountName,
               });
             }
           }
@@ -227,6 +232,8 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
           externalId: tx.externalId,
           createdBy: tx.createdBy,
           createdByName: tx.createdByName,
+          accountId: tx.accountId,
+          accountName: tx.accountName,
         }));
       }
 

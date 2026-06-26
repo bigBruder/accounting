@@ -11,6 +11,8 @@ export interface Transaction {
   externalId?: string; // ID from external source (like Monobank)
   createdBy?: string;  // User UID
   createdByName?: string; // User Name or Email
+  accountId?: string;  // Monobank account ID
+  accountName?: string; // Human-readable account name (e.g. "Чорна *6679 ₴")
 }
 
 export interface TransactionFormData {
@@ -38,6 +40,7 @@ export interface FilterOptions {
   dateFrom?: string;
   dateTo?: string;
   search?: string;
+  accountId?: string; // Monobank account filter
 }
 
 export interface CategorySummary {

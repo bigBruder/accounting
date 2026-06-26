@@ -28,6 +28,7 @@ export const TransactionList: React.FC<TransactionListProps> = ({
   const [activeTab, setActiveTab] = useState<'all' | 'expense' | 'income' | 'transfer'>('all');
   const [search, setSearch] = useState('');
   const [memberFilter, setMemberFilter] = useState('all');
+  const [accountFilter, setAccountFilter] = useState('all');
   const [dateFrom, setDateFrom] = useState('');
   const [dateTo, setDateTo] = useState('');
 
@@ -39,9 +40,15 @@ export const TransactionList: React.FC<TransactionListProps> = ({
     .map(uid => {
       const tx = transactions.find(t => t.createdBy === uid);
       const rawName = tx?.createdByName || 'Unknown';
-      // Extract a short readable name: use part before @ if it's an email
       const displayName = rawName.includes('@') ? rawName.split('@')[0] : rawName;
       return { uid, name: displayName };
+    });
+
+  // Extract unique Monobank accounts from transactions for the filter
+  const accounts = Array.from(new Set(transactions.map(tx => tx.accountId).filter(Boolean)))
+    .map(accountId => {
+      const tx = transactions.find(t => t.accountId === accountId);
+      return { id: accountId!, name: tx?.accountName || accountId! };
     });
 
   const handleFilterChange = (updates: Partial<{ type: string; search: string; member: string; dateFrom: string; dateTo: string }>) => {
@@ -66,9 +73,10 @@ export const TransactionList: React.FC<TransactionListProps> = ({
   const filteredTransactions = transactions.filter(tx => {
     const matchesTab = activeTab === 'all' || tx.type === activeTab;
     const matchesMember = memberFilter === 'all' || tx.createdBy === memberFilter;
+    const matchesAccount = accountFilter === 'all' || tx.accountId === accountFilter || (!tx.accountId && accountFilter === 'all');
     const matchesSearch = !search || tx.description.toLowerCase().includes(search.toLowerCase());
     
-    return matchesTab && matchesMember && matchesSearch;
+    return matchesTab && matchesMember && matchesAccount && matchesSearch;
   });
 
   return (
@@ -138,6 +146,25 @@ export const TransactionList: React.FC<TransactionListProps> = ({
                   onClick={() => handleFilterChange({ member: m.uid })}
                 >
                   👤 {m.name}
+                </button>
+              ))}
+            </div>
+          )}
+          {accounts.length > 1 && (
+            <div className="member-chips">
+              <button
+                className={`member-chip ${accountFilter === 'all' ? 'member-chip--active' : ''}`}
+                onClick={() => setAccountFilter('all')}
+              >
+                {t('common.allAccounts', { defaultValue: 'Всі рахунки' })}
+              </button>
+              {accounts.map(acc => (
+                <button
+                  key={acc.id}
+                  className={`member-chip ${accountFilter === acc.id ? 'member-chip--active' : ''}`}
+                  onClick={() => setAccountFilter(acc.id)}
+                >
+                  💳 {acc.name}
                 </button>
               ))}
             </div>

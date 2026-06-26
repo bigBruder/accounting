@@ -36,6 +36,9 @@ export function getFilteredTransactions(transactions: Transaction[], filters: Fi
       t.description.toLowerCase().includes(q)
     );
   }
+  if (filters.accountId) {
+    result = result.filter(t => t.accountId === filters.accountId);
+  }
 
   return result.sort((a, b) => {
     const dateDiff = b.date.localeCompare(a.date);

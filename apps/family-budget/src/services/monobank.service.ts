@@ -187,5 +187,37 @@ export const MonobankService = {
 
     // 3. Fallback
     return 'other-expense';
+  },
+
+  /**
+   * Builds a human-readable display name for a Monobank account
+   * e.g. "Чорна *6679 ₴" or "ФОП *1234 $"
+   */
+  getAccountDisplayName(account: MonoAccount): string {
+    const CURRENCY_SYMBOLS: Record<number, string> = {
+      980: '₴', // UAH
+      840: '$', // USD
+      978: '€', // EUR
+      826: '£', // GBP
+      985: 'zł', // PLN
+    };
+
+    const currencySymbol = CURRENCY_SYMBOLS[account.currencyCode] || `(${account.currencyCode})`;
+    const pan = account.maskedPan?.[0];
+    const lastDigits = pan ? `*${pan.slice(-4)}` : account.iban?.slice(-4) || '';
+    
+    // Determine card type label from account type
+    const typeLabels: Record<string, string> = {
+      'black': 'Чорна',
+      'white': 'Біла',
+      'platinum': 'Platinum',
+      'iron': 'Залізна',
+      'fop': 'ФОП',
+      'eAid': 'єПідтримка',
+    };
+    
+    const typeLabel = typeLabels[account.type] || account.type || '';
+    
+    return `${typeLabel} ${lastDigits} ${currencySymbol}`.trim();
   }
 };
