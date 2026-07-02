@@ -148,6 +148,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
       }
 
       const pendingTransactions: PendingTransaction[] = [];
+      const syncPromises: Promise<any>[] = [];
 
       for (const { token, ownerUid, ownerName } of tokensToSync) {
         try {
@@ -158,7 +159,16 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
             const accountName = MonobankService.getAccountDisplayName(account);
 
             for (const tx of monoTxs) {
-              if (existingExternalIds.has(tx.id)) continue;
+              const existingTx = transactions.find(t => t.externalId === tx.id);
+              if (existingTx) {
+                if (!existingTx.accountId) {
+                  syncPromises.push(updateTransaction(familyId, existingTx.id, {
+                    accountId: account.id,
+                    accountName: accountName,
+                  }));
+                }
+                continue;
+              }
               existingExternalIds.add(tx.id);
 
               const categoryId = MonobankService.mapToCategoryId(tx.mcc, tx.description);
@@ -216,7 +226,6 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
       }
 
       // Phase 3: Write all transactions, marking matched ones as 'transfer'
-      const syncPromises: Promise<any>[] = [];
 
       for (let i = 0; i < pendingTransactions.length; i++) {
         const tx = pendingTransactions[i];
